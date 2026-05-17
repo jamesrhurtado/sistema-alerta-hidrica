@@ -1,22 +1,34 @@
 import Link from "next/link";
-import { ArrowRight, CloudRain, MapPin, ShieldAlert, Users } from "lucide-react";
+import { ArrowRight, Building2, CloudRain, MapPin, ShieldAlert, Users } from "lucide-react";
 
-import { api } from "@/lib/api";
+import { api, type Cuenca } from "@/lib/api";
 import { KPICard } from "@/components/kpi-card";
 import { SeverityBadge } from "@/components/severity-badge";
 import { fmtNum } from "@/lib/utils";
+import { getCurrentMunicipality } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [cuencas, alerts] = await Promise.all([api.cuencas(), api.alerts()]);
+  const muni = await getCurrentMunicipality();
 
+  // Filtrar cuencas a las que monitorea la municipalidad logueada.
+  // Si no hay sesión, mostrar las 3 cuencas piloto del sistema entero.
+  let cuencas: Cuenca[];
+  if (muni && muni.cuencas) {
+    cuencas = muni.cuencas;
+  } else {
+    cuencas = await api.cuencas();
+  }
+
+  const alerts = await api.alerts();
   const ivcs = await Promise.all(cuencas.map((c) => api.ivc(c.id).catch(() => null)));
 
   const popAtRisk = ivcs.reduce((acc, i) => acc + (i?.pop_high_risk ?? 0), 0);
+  const validIvcs = ivcs.filter(Boolean);
   const ivcAvg =
-    ivcs.length > 0
-      ? ivcs.reduce((acc, i) => acc + (i?.ivc_mean ?? 0), 0) / ivcs.filter(Boolean).length
+    validIvcs.length > 0
+      ? validIvcs.reduce((acc, i) => acc + (i?.ivc_mean ?? 0), 0) / validIvcs.length
       : 0;
   const activeAlerts = alerts.filter(
     (a) => Date.now() - new Date(a.created_at).getTime() < 24 * 3600 * 1000,
@@ -27,21 +39,34 @@ export default async function HomePage() {
       <section>
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
+            {muni ? (
+              <div className="text-xs uppercase text-emerald-300/80 tracking-wider mb-1 flex items-center gap-1.5">
+                <Building2 className="w-3 h-3" />
+                {muni.nombre}
+              </div>
+            ) : (
+              <div className="text-xs uppercase text-amber-300/80 tracking-wider mb-1">
+                Sin sesión · vista pública
+              </div>
+            )}
             <h1 className="text-3xl font-bold text-white">
-              Sistema de Alerta Hídrica Oportuna
+              {muni ? "Panel de monitoreo hídrico" : "Sistema de Alerta Hídrica Oportuna"}
             </h1>
             <p className="text-white/60 mt-1 max-w-2xl">
-              AHORA monitorea cuencas piloto en Perú, combinando geointeligencia satelital
-              con pronósticos meteorológicos para anticipar inundaciones y huaicos.
+              {muni
+                ? `Monitoreo activo de las cuencas asignadas a ${muni.nombre}. Las alertas se disparan automáticamente cuando el pronóstico supera el umbral crítico de cada cuenca.`
+                : "Plataforma de alerta temprana de inundaciones y huaicos para gobiernos locales. Ingresá como municipalidad para ver tu panel."}
             </p>
           </div>
-          <Link
-            href="/replay"
-            className="inline-flex items-center gap-2 rounded-md bg-[var(--color-ahora-blue)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a3d8f] border border-white/10"
-          >
-            Disparar replay histórico
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {!muni && (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-md bg-[var(--color-ahora-blue)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a3d8f] border border-white/10"
+            >
+              Ingresar como municipalidad
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </section>
 
@@ -49,13 +74,13 @@ export default async function HomePage() {
         <KPICard
           label="Cuencas monitoreadas"
           value={cuencas.length}
-          hint="piloto activo"
+          hint={muni ? `asignadas a ${muni.id}` : "piloto del sistema"}
           accent="blue"
         />
         <KPICard
           label="Alertas últimas 24h"
           value={activeAlerts.length}
-          hint={`${alerts.length} históricas`}
+          hint={`${alerts.length} totales en historia`}
           accent="red"
         />
         <KPICard
@@ -65,59 +90,66 @@ export default async function HomePage() {
           accent="orange"
         />
         <KPICard
-          label="IVC promedio nacional"
+          label="IVC promedio"
           value={fmtNum(ivcAvg, 1)}
-          hint="0–100"
+          hint="0–100 escala global"
           accent="purple"
         />
       </section>
 
       <section>
         <h2 className="text-lg font-semibold mb-3 text-white/90 flex items-center gap-2">
-          <MapPin className="w-4 h-4" /> Cuencas piloto · click para abrir mapa
+          <MapPin className="w-4 h-4" />
+          {muni ? "Tus cuencas · click para abrir el mapa" : "Cuencas piloto del sistema"}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {cuencas.map((c, i) => (
-            <Link
-              key={c.id}
-              href={`/cuenca/${c.id}`}
-              className="group block rounded-lg border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] hover:border-blue-400/40 transition-all"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-xs uppercase text-white/40 tracking-wider">{c.id}</div>
-                  <div className="font-semibold text-lg text-white mt-1">{c.nombre}</div>
-                  {c.foco && (
-                    <div className="text-sm text-white/60">Foco: {c.foco}</div>
+        {cuencas.length === 0 ? (
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-8 text-center text-white/50">
+            Esta municipalidad no tiene cuencas asignadas todavía.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {cuencas.map((c, i) => (
+              <Link
+                key={c.id}
+                href={`/cuenca/${c.id}`}
+                className="group block rounded-lg border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] hover:border-blue-400/40 transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-xs uppercase text-white/40 tracking-wider">{c.id}</div>
+                    <div className="font-semibold text-lg text-white mt-1">{c.nombre}</div>
+                    {c.foco && (
+                      <div className="text-sm text-white/60">Foco: {c.foco}</div>
+                    )}
+                  </div>
+                  {ivcs[i] && (
+                    <div className="text-right">
+                      <div className="text-xs text-white/40">IVC máx</div>
+                      <div className="text-2xl font-bold text-amber-300 tabular-nums">
+                        {fmtNum(ivcs[i]?.ivc_max, 1)}
+                      </div>
+                    </div>
                   )}
                 </div>
-                {ivcs[i] && (
-                  <div className="text-right">
-                    <div className="text-xs text-white/40">IVC máx</div>
-                    <div className="text-2xl font-bold text-amber-300 tabular-nums">
-                      {fmtNum(ivcs[i]?.ivc_max, 1)}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-white/50">
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {fmtNum(ivcs[i]?.pop_high_risk)} en riesgo
-                </span>
-                {ivcs[i]?.mock && (
-                  <span className="text-amber-400/70 font-mono">mock-data</span>
-                )}
-              </div>
-              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-sm">
-                <span className="text-blue-400 font-semibold group-hover:text-blue-300">
-                  Abrir mapa interactivo
-                </span>
-                <ArrowRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="mt-3 flex items-center justify-between text-xs text-white/50">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {fmtNum(ivcs[i]?.pop_high_risk)} en riesgo
+                  </span>
+                  {ivcs[i]?.mock && (
+                    <span className="text-amber-400/70 font-mono">mock-data</span>
+                  )}
+                </div>
+                <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-sm">
+                  <span className="text-blue-400 font-semibold group-hover:text-blue-300">
+                    Abrir mapa interactivo
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <section>
@@ -127,8 +159,11 @@ export default async function HomePage() {
         {alerts.length === 0 ? (
           <div className="rounded-lg border border-white/10 bg-white/[0.02] p-8 text-center text-white/50">
             <CloudRain className="w-10 h-10 mx-auto mb-3 opacity-50" />
-            No hay alertas registradas todavía. Probá un replay desde{" "}
-            <Link href="/replay" className="text-blue-400 underline">/replay</Link>.
+            No hay alertas registradas todavía.{" "}
+            <Link href="/admin/simulacion" className="text-blue-400 underline">
+              Simulá un escenario
+            </Link>{" "}
+            para ver cómo respondería el sistema.
           </div>
         ) : (
           <ul className="space-y-2">

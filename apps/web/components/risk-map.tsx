@@ -50,11 +50,8 @@ const HYBRID_STYLE: maplibregl.StyleSpecification = {
 
 // Orden de pintado: las capas que aparecen primero en el array quedan ABAJO.
 const LAYER_ORDER = [
-  "agua_max",
   "agua_freq",
-  "agua_recurrente",
   "urbano_temporal",
-  "urb_nuevo",
   "ivc",
   "riesgo_antiguo",
   "riesgo_nuevo",

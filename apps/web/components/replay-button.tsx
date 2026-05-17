@@ -52,7 +52,7 @@ export function ReplayButton({ event }: { event: ReplayEvent }) {
           )}
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          {loading ? "Ejecutando..." : "Disparar replay"}
+          {loading ? "Simulando..." : "Simular escenario"}
         </button>
       </div>
       {result && (

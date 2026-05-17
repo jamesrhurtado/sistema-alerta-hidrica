@@ -154,3 +154,5 @@ pnpm build              # build de producción del frontend
 - **[PLAN.md](PLAN.md)** — Plan que seguimos, decisiones, lo hecho vs lo pendiente.
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — Cómo funciona todo: datos, fórmulas, flujo de un request.
 - **[GUIA.md](GUIA.md)** — Guía de usuario: qué hace cada página, cada botón, demo paso a paso.
+- **[KAPSO_WHATSAPP.md](KAPSO_WHATSAPP.md)** — Cómo conectar WhatsApp Business via Kapso, opt-in por zona, plantillas Meta.
+- **[MS_AUTH.md](MS_AUTH.md)** — Cómo reemplazar el mock-auth por "Continue with Microsoft" (Entra ID).

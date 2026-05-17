@@ -6,8 +6,15 @@ from sqlalchemy import text
 from ahora.config import settings
 from ahora.db import get_session
 from ahora.gee.auth import init_gee, is_mock
+from ahora.notify.kapso import kapso
+from ahora.scheduler import get_scheduler_status
 
 router = APIRouter()
+
+
+@router.get("/scheduler")
+async def scheduler_status() -> dict[str, object]:
+    return get_scheduler_status()
 
 
 @router.get("/health")
@@ -26,9 +33,8 @@ async def health() -> dict[str, object]:
     return {
         "status": "ok" if db_ok else "degraded",
         "db": {"ok": db_ok, "error": db_err},
-        "gee": {
-            "ready": gee_ready,
-            "mock_mode": is_mock(),
-        },
+        "gee": {"ready": gee_ready, "mock_mode": is_mock()},
+        "kapso": {"configured": kapso.enabled},
+        "scheduler": get_scheduler_status(),
         "storage_dir": str(settings.local_storage_dir.resolve()),
     }

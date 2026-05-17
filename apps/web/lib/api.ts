@@ -123,6 +123,55 @@ export type LayerStack = {
   mock: boolean;
 };
 
+export type AnalysisEventMeta = {
+  id: string;
+  cuenca_id: string;
+  label: string;
+  pre_dates: [string, string];
+  post_dates: [string, string];
+  alert_lead_hours: number;
+  damage_summary: string;
+};
+
+export type AnalysisResult = {
+  event_id: string;
+  label: string;
+  cuenca_id: string;
+  cuenca_nombre?: string;
+  cuenca_foco?: string;
+  center?: [number, number];
+  zoom?: number;
+  pre_dates: [string, string];
+  post_dates: [string, string];
+  tile_urls: {
+    pre: string;
+    post: string;
+    inundacion: string;
+    inund_urbano: string;
+  };
+  stats: {
+    ha_inundadas: number;
+    ha_urbano_inundado: number;
+    pop_afectada: number;
+  };
+  alert_lead_hours: number;
+  damage_summary: string;
+  mock: boolean;
+};
+
+export type Municipality = {
+  id: string;
+  nombre: string;
+  parent_id: string | null;
+  nivel: "regional" | "provincial" | "distrital";
+  domain_hint: string | null;
+  whatsapp_kapso_url: string | null;
+  teams_webhook_url: string | null;
+  n_cuencas?: number;
+  cuencas?: Cuenca[];
+  suscriptores_por_canal?: Record<string, number>;
+};
+
 export const api = {
   cuencas: () => request<Cuenca[]>("/cuencas"),
   cuenca: (id: string) => request<Cuenca>(`/cuencas/${id}`),
@@ -130,6 +179,17 @@ export const api = {
     request<CaseStudy[]>(`/cuencas/${cuencaId}/case-studies`),
   ivc: (cuencaId: string) => request<IvcSummary>(`/ivc/${cuencaId}`),
   layers: (cuencaId: string) => request<LayerStack>(`/layers/${cuencaId}`),
+  municipalities: () => request<Municipality[]>("/municipalities"),
+  municipality: (id: string) => request<Municipality>(`/municipalities/${id}`),
+  analysisEvents: () => request<AnalysisEventMeta[]>("/analysis/events"),
+  analysis: (eventId: string) => request<AnalysisResult>(`/analysis/events/${eventId}`),
+  systemConfig: () => request<{ kapso_configured: boolean; monitor_interval_minutes: number; gee_mock_mode: boolean }>("/config/system"),
+  schedulerStatus: () => request<{ interval_minutes: number; enabled: boolean; ran_at: string | null; next_at: string | null; cuencas_scanned: number; alerts_triggered: number }>("/scheduler"),
+  updateMunicipalityConfig: (id: string, body: { whatsapp_kapso_url?: string | null; teams_webhook_url?: string | null }) =>
+    request<{ municipality_id: string; whatsapp_kapso_url: string | null; teams_webhook_url: string | null }>(`/config/municipality/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   alerts: (cuencaId?: string) =>
     request<AlertEvent[]>(
       `/alerts${cuencaId ? `?cuenca_id=${cuencaId}` : ""}`,

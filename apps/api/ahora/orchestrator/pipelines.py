@@ -173,41 +173,17 @@ async def _step_persist(ctx: dict[str, Any]) -> dict[str, Any]:
 
 @monitor_pipeline.step("notify-console")
 async def _step_notify(ctx: dict[str, Any]) -> dict[str, Any]:
-    """Notificación por consola (modo demo). Encola en sms_outbox e imprime."""
     pers = ctx["persist-event"]
     if not pers.get("created"):
         return {"notified": 0}
-
-    cuenca = ctx["load-cuenca"]
-    async with get_session() as s:
-        res = await s.execute(
-            text(
-                "SELECT s.id, s.telefono, s.nombre "
-                "FROM subscriber s, cuenca c "
-                "WHERE c.id=:c AND ST_DWithin(s.zona::geography, c.centro::geography, 20000) "
-                "  AND s.activo=true"
-            ),
-            {"c": cuenca["id"]},
-        )
-        subs = res.fetchall()
-
-        for sub_id, telefono, nombre in subs:
-            await s.execute(
-                text(
-                    "INSERT INTO sms_outbox (event_id, subscriber_id, telefono, body, status) "
-                    "VALUES (:e, :s, :t, :b, 'sent') "
-                    "ON CONFLICT (event_id, telefono) DO NOTHING"
-                ),
-                {"e": pers["event_id"], "s": sub_id, "t": telefono, "b": pers["message"]},
-            )
-            # canal demo = stdout
-            print("\n" + "─" * 60)
-            print(f"📱 SMS → {nombre} ({telefono})")
-            print(pers["message"])
-            print("─" * 60)
-        await s.commit()
-
-    return {"notified": len(subs)}
+    return await _dispatch_notifications(
+        cuenca_id=ctx["load-cuenca"]["id"],
+        event_id=pers["event_id"],
+        message=pers["message"],
+        severity=pers["severity"],
+        cuenca_label=ctx["load-cuenca"]["foco"] or ctx["load-cuenca"]["nombre"],
+        rain_mm=ctx["evaluate-trigger"]["forecast_mm_24h_max"],
+    )
 
 
 # ─────────────────────────────────────────────────────────
@@ -295,33 +271,91 @@ async def _replay_persist(ctx: dict[str, Any]) -> dict[str, Any]:
 @replay_pipeline.step("notify-console")
 async def _replay_notify(ctx: dict[str, Any]) -> dict[str, Any]:
     pers = ctx["persist-event"]
+    ev = ctx["load-event"]
     cuenca = ctx["load-cuenca"]
+    return await _dispatch_notifications(
+        cuenca_id=cuenca["id"],
+        event_id=pers["event_id"],
+        message=pers["message"],
+        severity=pers["severity"],
+        cuenca_label=cuenca["foco"] or cuenca["nombre"],
+        rain_mm=ev["mm_24h_max"],
+    )
+
+
+# ─────────────────────────────────────────────────────────
+# Dispatcher: SMS simulador + WhatsApp via Kapso
+# ─────────────────────────────────────────────────────────
+async def _dispatch_notifications(
+    cuenca_id: str,
+    event_id: str,
+    message: str,
+    severity: str,
+    cuenca_label: str,
+    rain_mm: float | int,
+) -> dict[str, Any]:
+    from ahora.notify.kapso import kapso
+
     async with get_session() as s:
         res = await s.execute(
             text(
-                "SELECT s.id, s.telefono, s.nombre "
+                "SELECT s.id, s.telefono, s.nombre, s.canal "
                 "FROM subscriber s, cuenca c "
-                "WHERE c.id=:c AND ST_DWithin(s.zona::geography, c.centro::geography, 20000) "
-                "  AND s.activo=true"
+                "WHERE c.id=:c "
+                "  AND s.municipality_id IN ("
+                "    SELECT municipality_id FROM municipality_cuenca WHERE cuenca_id = c.id"
+                "  ) "
+                "  AND s.activo = true"
             ),
-            {"c": cuenca["id"]},
+            {"c": cuenca_id},
         )
         subs = res.fetchall()
-        for sub_id, telefono, nombre in subs:
+
+        sms_count = 0
+        wa_count = 0
+        wa_subs: list[dict[str, str]] = []
+        for sub_id, telefono, nombre, canal in subs:
             await s.execute(
                 text(
                     "INSERT INTO sms_outbox (event_id, subscriber_id, telefono, body, status) "
                     "VALUES (:e, :s, :t, :b, 'sent') "
                     "ON CONFLICT (event_id, telefono) DO NOTHING"
                 ),
-                {"e": pers["event_id"], "s": sub_id, "t": telefono, "b": pers["message"]},
+                {"e": event_id, "s": sub_id, "t": telefono, "b": message},
             )
             print("\n" + "─" * 60)
-            print(f"📱 SMS [REPLAY] → {nombre} ({telefono})")
-            print(pers["message"])
+            etiqueta = "WHATSAPP" if canal == "whatsapp" else "SMS"
+            print(f"📱 {etiqueta} → {nombre or telefono} ({telefono})")
+            print(message)
             print("─" * 60)
+            if canal == "whatsapp":
+                wa_subs.append({"phone_number": telefono, "name": nombre or ""})
+                wa_count += 1
+            else:
+                sms_count += 1
         await s.commit()
-    return {"notified": len(subs)}
+
+    # Si Kapso esta configurado completo (con template), envio real a WhatsApp
+    kapso_result: dict[str, Any] = {"attempted": False}
+    if wa_subs and kapso.can_send_real:
+        kapso_result = await kapso.send_alert_to_subscribers(
+            recipients=wa_subs,
+            body_params=[
+                severity.upper(),
+                cuenca_label,
+                f"Lluvia 24h: {int(rain_mm)} mm. Sigue indicaciones de Defensa Civil.",
+                "Defensa Civil",
+            ],
+            broadcast_name=f"AHORA · {cuenca_label} · {severity}",
+        )
+        kapso_result["attempted"] = True
+
+    return {
+        "notified": len(subs),
+        "sms_simulated": sms_count,
+        "whatsapp": wa_count,
+        "kapso": kapso_result,
+    }
 
 
 # ─────────────────────────────────────────────────────────

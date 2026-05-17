@@ -228,17 +228,14 @@ def build_layer_stack(
         ),
     }
 
-    # ── Generar tile URLs (lo más lento: getMapId requiere prepare en GEE) ──
+    # ── Generar tile URLs (5 capas optimizadas para usuario final) ──
     layers = _images_to_tile_layers(
         {
-            "agua_max": aguaMaxExt.updateMask(aguaMaxExt),
-            "agua_freq": aguaFreq,
-            "agua_recurrente": aguaRecurrente.selfMask(),
-            "urbano_temporal": urbanoTemporal,
-            "urb_nuevo": urbNuevo.selfMask(),
             "ivc": ivc.updateMask(ivc.gt(15)),
-            "riesgo_antiguo": riesgoAntiguo.selfMask(),
             "riesgo_nuevo": riesgoNuevo.selfMask(),
+            "riesgo_antiguo": riesgoAntiguo.selfMask(),
+            "agua_freq": aguaFreq,
+            "urbano_temporal": urbanoTemporal,
         },
         yUs=yUs, yUe=yUe, total_years=total_years,
     )
@@ -267,60 +264,45 @@ def _images_to_tile_layers(
 ) -> dict[str, dict[str, Any]]:
     """Convierte cada ee.Image en una capa MapLibre (raster XYZ)."""
     # Definición de viz por capa
+    # 5 capas optimizadas para usuario final municipal (no analista).
+    # IVC + polígonos de riesgo son la historia principal; agua y urbano
+    # son contexto opcional.
     viz: dict[str, dict[str, Any]] = {
-        "agua_max": {
-            "label": "💧 Extensión máx. histórica",
-            "palette": PALETTES["agua_max"],
-            "opacity": 0.45,
-            "default_visible": True,
-        },
-        "agua_freq": {
-            "label": "🌊 Intensidad agua (años)",
-            "min": 1,
-            "max": max(2, int(total_years * 0.6)),
-            "palette": PALETTES["agua_freq"],
-            "opacity": 0.85,
-            "default_visible": True,
-        },
-        "agua_recurrente": {
-            "label": "💠 Agua recurrente",
-            "palette": PALETTES["agua_recurrente"],
-            "opacity": 0.9,
-            "default_visible": False,
-        },
-        "urbano_temporal": {
-            "label": f"🏗️ Año aparición urbana ({yUs}→{yUe})",
-            "min": yUs,
-            "max": yUe,
-            "palette": PALETTES["urbano_temporal"],
-            "opacity": 0.85,
-            "default_visible": True,
-        },
-        "urb_nuevo": {
-            "label": f"🆕 Expansión {yUs}→{yUe}",
-            "palette": PALETTES["urb_nuevo"],
-            "opacity": 0.7,
-            "default_visible": False,
-        },
         "ivc": {
-            "label": "🎯 IVC (semáforo)",
+            "label": "🎯 Nivel de vulnerabilidad (IVC)",
             "min": 15,
             "max": 80,
             "palette": PALETTES["ivc"],
             "opacity": 0.7,
-            "default_visible": False,
+            "default_visible": True,
+        },
+        "riesgo_nuevo": {
+            "label": "🚨 Riesgo ALTO — invasiones sobre cauce",
+            "palette": PALETTES["riesgo_nuevo"],
+            "opacity": 0.85,
+            "default_visible": True,
         },
         "riesgo_antiguo": {
-            "label": "⚠️ Riesgo medio (antiguo)",
+            "label": "⚠️ Riesgo medio — urbanización antigua",
             "palette": PALETTES["riesgo_antiguo"],
             "opacity": 0.65,
             "default_visible": True,
         },
-        "riesgo_nuevo": {
-            "label": "🚨 Riesgo ALTO (nuevo)",
-            "palette": PALETTES["riesgo_nuevo"],
+        "agua_freq": {
+            "label": "🌊 Historial de agua (1984–2021)",
+            "min": 1,
+            "max": max(2, int(total_years * 0.6)),
+            "palette": PALETTES["agua_freq"],
             "opacity": 0.85,
-            "default_visible": True,
+            "default_visible": False,
+        },
+        "urbano_temporal": {
+            "label": f"🏗️ Crecimiento urbano ({yUs}→{yUe})",
+            "min": yUs,
+            "max": yUe,
+            "palette": PALETTES["urbano_temporal"],
+            "opacity": 0.85,
+            "default_visible": False,
         },
     }
 

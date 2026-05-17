@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
+import { MunicipalityBadge } from "@/components/municipality-badge";
 
 export const metadata: Metadata = {
   title: "AHORA — Sistema de Alerta Hídrica Oportuna",
@@ -14,8 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className="font-sans">
         <header className="border-b border-white/10 bg-[#050810]/80 backdrop-blur sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
               <span className="text-2xl">🌊</span>
               <div>
                 <div className="font-bold text-white tracking-tight">AHORA</div>
@@ -24,13 +25,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             </Link>
-            <nav className="flex gap-1 text-sm">
+            <nav className="flex gap-1 text-sm flex-1 justify-center">
               <NavLink href="/">Inicio</NavLink>
-              <NavLink href="/cuenca/rimac">🗺️ Mapa Chosica</NavLink>
-              <NavLink href="/replay">⏪ Replay</NavLink>
+              <NavLink href="/cuenca/rimac">🗺️ Mapa</NavLink>
               <NavLink href="/alertas">🔔 Alertas</NavLink>
               <NavLink href="/admin/outbox">📱 Outbox</NavLink>
+              <NavLink href="/admin/analisis">🛰️ Análisis</NavLink>
+              <NavLink href="/configuracion">⚙️</NavLink>
             </nav>
+            <MunicipalityBadge />
           </div>
         </header>
         <main>{children}</main>

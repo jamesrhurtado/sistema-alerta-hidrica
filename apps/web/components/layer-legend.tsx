@@ -29,6 +29,17 @@ function ColorBar({ palette, min, max, label }: { palette: string[]; min: number
 export function LayerLegend({ layers, visible, totalYears, yearUrbStart, yearUrbEnd }: Props) {
   const items: React.ReactNode[] = [];
 
+  if (visible["ivc"] && layers["ivc"]) {
+    items.push(
+      <ColorBar
+        key="ivc"
+        palette={layers["ivc"].palette}
+        min={15}
+        max={80}
+        label="🎯 Vulnerabilidad (IVC)"
+      />,
+    );
+  }
   if (visible["agua_freq"] && layers["agua_freq"]) {
     items.push(
       <ColorBar
@@ -36,7 +47,7 @@ export function LayerLegend({ layers, visible, totalYears, yearUrbStart, yearUrb
         palette={layers["agua_freq"].palette}
         min={1}
         max={Math.max(2, Math.round(totalYears * 0.6))}
-        label="🌊 Intensidad agua (años)"
+        label="🌊 Años con agua (1984–2021)"
       />,
     );
   }
@@ -51,24 +62,10 @@ export function LayerLegend({ layers, visible, totalYears, yearUrbStart, yearUrb
       />,
     );
   }
-  if (visible["ivc"] && layers["ivc"]) {
-    items.push(
-      <ColorBar
-        key="ivc"
-        palette={layers["ivc"].palette}
-        min={15}
-        max={80}
-        label="🎯 IVC (semáforo)"
-      />,
-    );
-  }
 
   const swatches: { color: string; label: string; border?: string }[] = [];
   if (visible["riesgo_nuevo"]) swatches.push({ color: "#ff0066", label: "🚨 Riesgo ALTO", border: "#660033" });
   if (visible["riesgo_antiguo"]) swatches.push({ color: "#fdae6b", label: "⚠️ Riesgo medio", border: "#cc4c02" });
-  if (visible["agua_max"]) swatches.push({ color: "#c6dbef", label: "💧 Extensión máx. agua", border: "#9ecae1" });
-  if (visible["agua_recurrente"]) swatches.push({ color: "#08306b", label: "💠 Agua recurrente" });
-  if (visible["urb_nuevo"]) swatches.push({ color: "#cc4c02", label: "🆕 Expansión urbana" });
 
   return (
     <div className="rounded-lg border border-white/10 bg-black/70 backdrop-blur px-3 py-2.5 space-y-2 w-[260px]">

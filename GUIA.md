@@ -2,9 +2,25 @@
 
 > Para usuarios nuevos: cómo usar la app, qué hace cada página y cada botón, y cómo correr la demo del hackatón.
 
+---
+
+## El concepto del producto
+
+**AHORA es un sistema multi-tenant para gobiernos locales (municipalidades).**
+
+Cada municipalidad:
+1. **Ingresa con su cuenta institucional Microsoft** (`alcalde@munichosica.gob.pe`, etc.)
+2. **Ve solo sus cuencas** monitoreadas en el dashboard
+3. **Recibe alertas** cuando hay riesgo inminente, por SMS / WhatsApp / Microsoft Teams
+4. **Distribuye un link público** para que sus residentes opt-in a recibir alertas en su WhatsApp
+
+**Para la demo:** la municipalidad de Lurigancho-Chosica monitorea la cuenca del Rímac.
+
+---
+
 ## Antes de empezar
 
-Asegurate de tener **3 procesos corriendo en paralelo** (3 terminales o 3 tabs en tu terminal):
+Asegurate de tener **3 procesos corriendo en paralelo** (3 terminales):
 
 ```bash
 # Terminal 1 — base de datos
@@ -24,161 +40,154 @@ Esperá a que los tres digan "ready / running / healthy" y abrí: **<http://loca
 
 ---
 
-## Las 5 páginas de la app
+## Las páginas de la app
 
-### 🏠 `/` — Inicio (vista nacional)
+### 🚪 `/login` — Ingreso
 
-Lo primero que ves al abrir la app. Resumen agregado del país.
+**Cuándo aparece:** la primera vez, o cuando cerrás sesión.
 
 **Qué muestra:**
-- **4 KPIs grandes arriba**:
-  - Cuencas monitoreadas (3 en el MVP: Rímac, Piura, Chillón)
-  - Alertas últimas 24h
-  - Población en riesgo alto (suma de IVC > 60 en todas las cuencas)
-  - IVC promedio nacional
-- **Cuencas piloto**: 3 tarjetas grandes, una por cuenca. Cada tarjeta tiene IVC máx, población en riesgo y un link "**Abrir mapa interactivo →**".
-- **Alertas recientes**: si hubo replays ejecutados, las últimas 5 alertas con su severidad.
+- Botón grande "**Continuar con Microsoft**" (en producción inicia OAuth con Entra ID; en demo está deshabilitado — ver [MS_AUTH.md](MS_AUTH.md) para activarlo)
+- Lista de **municipalidades demo** para elegir como si te hubieras autenticado:
+  - Municipalidad de Lurigancho-Chosica (la principal para demo)
+  - Municipalidad Metropolitana de Lima
+  - Municipalidad Provincial de Piura
+  - Municipalidad Distrital de Catacaos
 
 **Qué podés hacer:**
-- ✅ **Click en cualquier tarjeta de cuenca** → abre el mapa interactivo de esa cuenca.
-- ✅ **Botón "Disparar replay histórico"** (arriba derecha) → te lleva a `/replay`.
+- ✅ Click en cualquier municipalidad → setea una cookie con tu sesión y te lleva al `/`
+
+---
+
+### 🏠 `/` — Inicio (panel de la municipalidad)
+
+**Qué muestra (cuando estás logueado como Chosica):**
+- Encabezado: "**Municipalidad de Lurigancho-Chosica · Panel de monitoreo hídrico**"
+- **4 KPIs grandes**:
+  - Cuencas monitoreadas (1 para Chosica: Rímac)
+  - Alertas últimas 24h
+  - Población en riesgo alto (0 si no hay datos, no `—`)
+  - IVC promedio
+- **Tus cuencas**: solo las asignadas a tu municipalidad. Cada tarjeta tiene un CTA "Abrir mapa interactivo →".
+- **Alertas recientes**: las últimas 5.
+
+**Si no hay sesión** (cerraste sesión o no entraste todavía):
+- Encabezado dice "Sin sesión · vista pública"
+- Muestra las 3 cuencas piloto del sistema entero
+- Botón visible "Ingresar como municipalidad"
 
 ---
 
 ### 🗺️ `/cuenca/rimac` — Mapa interactivo (la página estrella)
 
 **Cómo llegar:**
-- Desde la barra de navegación → "🗺️ Mapa Chosica"
+- Desde la barra de navegación → "🗺️ Mapa"
 - Desde el inicio → click en la tarjeta "Cuenca del Rímac"
 
 **Qué muestra:**
 
-1. **Mapa central** con base satelital (Esri) + nombres OSM superpuestos + 8 capas raster de Google Earth Engine apiladas.
+1. **Mapa central** con satélite Esri + nombres OSM superpuestos + **5 capas raster** de Google Earth Engine apiladas (reducidas desde 8 para evitar confusión).
 
-2. **Panel "Capas"** (arriba izquierda): checkboxes agrupados en 3 secciones para alternar qué capas ves. **Tocá cada checkbox para apilar/quitar capas en vivo** — los tiles se cargan dinámicamente desde GEE.
+2. **Panel "Capas"** (arriba izquierda), agrupado en 2 secciones:
+   - **🚨 Riesgo (principal)** — 3 capas, las 3 activas por defecto:
+     - 🎯 Nivel de vulnerabilidad (IVC) — el semáforo verde→rojo
+     - 🚨 Riesgo ALTO — polígonos rojos de invasiones sobre cauce
+     - ⚠️ Riesgo medio — polígonos naranja de urbanización antigua en zona de agua
+   - **📊 Contexto (opcional)** — 2 capas, ocultas por defecto:
+     - 🌊 Historial de agua (1984–2021)
+     - 🏗️ Crecimiento urbano (1990→2020)
 
-3. **Leyenda dinámica** (abajo derecha): rampas de color que se actualizan según las capas activas. Solo muestra las leyendas relevantes.
+3. **Leyenda dinámica** (abajo derecha): se actualiza solo con lo que esté activo.
 
-4. **Resumen del análisis** (panel derecho): los mismos números que mostraba tu prototipo Code Editor:
-   - **Expansión urbana total** (ha)
-   - **Sobre/cerca de agua** (ha y %) — el indicador clave
-   - **Urb. antiguo en zona de agua** (ha)
-   - **Pob. en RIESGO ALTO** (hab.) — destacado en rojo
-   - **Pob. total expuesta** (hab.)
-   - **IVC promedio y máximo** (0–100)
-   - **Área urbana total** (ha)
-   - Banner rojo si la expansión inundable supera el 5%
+4. **Resumen del análisis** (panel derecho): números calculados en vivo por GEE:
+   - Expansión urbana total y la fracción en zona inundable (con alerta si > 5%)
+   - Población en RIESGO ALTO (destacado en rojo)
+   - IVC promedio y máximo
+   - Área urbana total
 
-5. **Alertas en esta cuenca**: histórico de alertas creadas por replays.
+5. **¿Qué es el IVC?** (panel desplegable): explica los 5 factores del índice, los pesos y los rangos del semáforo. **Tocalo si no entendés el número 0–100.**
 
-6. **Casos emblemáticos**: Chosica - Quebrada Pedregal, con descripción.
+6. **Alertas en esta cuenca**: histórico de alertas creadas por simulaciones.
 
-**Qué podés hacer:**
+7. **Casos emblemáticos**: con descripción.
 
-| Acción | Cómo |
-|---|---|
-| Activar/desactivar una capa | Click en su checkbox en el panel "Capas" |
-| Pan (mover) el mapa | Arrastrar con el mouse |
-| Zoom | Rueda del mouse, o pinch en trackpad, o botones +/− arriba derecha |
-| Ver detalle de un caso emblemático | Click en el marcador amarillo |
-| Cerrar/abrir el panel "Capas" | Click en el header "Capas −" |
-
-**Lo más impactante visualmente:**
-- Apagá todas las capas excepto "🏗️ Año aparición urbana" — verás la mancha amarillo→marrón mostrando dónde y cuándo creció la ciudad.
-- Sumá "🚨 Riesgo ALTO (nuevo)" — los polígonos rojos muestran exactamente las invasiones post-1990 sobre cauces. **Esa es la historia.**
-
----
-
-### ⏪ `/replay` — Replay de eventos históricos
-
-**Cómo llegar:** nav → "⏪ Replay" o desde el botón del home.
-
-**Qué muestra:** lista de 3 eventos históricos precableados:
-
-| Evento | Fecha | Lluvia 24h | Contexto |
-|---|---|---|---|
-| `rimac-2017-03-15` | 15 mar 2017 | 95 mm | Huaico Carretera Central, quebrada Pedregal Chico |
-| `piura-2017-03-27` | 27 mar 2017 | 220 mm | El Niño Costero, desborde río Piura |
-| `lima-2023-03-13` | 13 mar 2023 | 78 mm | Ciclón Yaku, lluvias en Lima costera |
-
-**Qué podés hacer:**
-
-- ✅ **Botón "Disparar replay"** en cada evento → ejecuta el pipeline completo (6 steps) contra la cuenca correspondiente:
-  1. Carga el evento
-  2. Carga la cuenca con su AOI
-  3. Inyecta la lluvia histórica en `rain_daily`
-  4. Calcula IVC contra GEE (o usa cache si ya está)
-  5. Persiste un `alert_event` con severidad calculada
-  6. Encola SMS para cada suscriptor en la zona, los imprime en stdout
-
-  Cuando termina, vas a ver: "✔ Pipeline completado. Generadas alertas + outbox."
-
-**Para la demo:**
-1. Apretá replay en `rimac-2017-03-15`.
-2. Abrí en otra tab `/alertas` y `/admin/outbox` — vas a ver el evento nuevo y los 4 SMS.
-3. Mirá el stdout del backend (terminal 2) — los SMS aparecen impresos con formato ASCII.
+**Para el demo:**
+- Apagá las 2 capas de Contexto. Quedate con IVC + ambos riesgos.
+- Hacé zoom a Chosica. Vas a ver el semáforo (verde→amarillo→rojo) pintando manzanas, y polígonos rojos magenta marcando las invasiones críticas sobre la quebrada Pedregal.
 
 ---
 
 ### 🔔 `/alertas` — Historial de alertas
 
-**Qué muestra:** todas las alertas creadas, ordenadas por fecha desc. Cada una tiene:
-- Badge de severidad (BAJA / MEDIA / ALTA / EXTREMA — la extrema pulsa en rojo)
-- Fecha y cuenca
-- mm de lluvia 24h, IVC máx, población estimada
-- Mensaje completo formateado (con emoji 🚨 y multi-línea)
-
-**Qué podés hacer:**
-- Solo leer. Esta página refleja el estado de `alert_event` en Postgres.
-- Si está vacía, apretá un replay primero.
+**Qué muestra:** todas las alertas creadas, ordenadas por fecha desc. Cada una con badge de severidad, mm de lluvia, IVC máx, población estimada y mensaje completo.
 
 ---
 
 ### 📱 `/admin/outbox` — Bandeja simulada de SMS
 
-**Qué muestra:** todos los SMS encolados en `sms_outbox`, agrupados visualmente como una bandeja:
-- Ícono de teléfono
-- Número destino (+51 999 000 ...)
-- Severidad badge
-- Mensaje exacto que recibiría el suscriptor
+**Qué muestra:** todos los SMS encolados, agrupados como una bandeja con polling en vivo (cada 2 s). Sirve para visualizar exactamente qué texto recibiría cada suscriptor cuando se conecte Twilio/Kapso real.
 
-**Tope superior:** indicador "Streaming en vivo (poll 2s)" con ícono pulsante.
+**Para conectar WhatsApp real:** ver [KAPSO_WHATSAPP.md](KAPSO_WHATSAPP.md).
 
-**Qué podés hacer:**
-- ✅ **Pausar/Reanudar** el polling — útil si querés congelar la pantalla durante una demo.
-- Refrescar la página manualmente para forzar recarga.
+---
 
-**Para la demo:**
-Mantenelo abierto en una tab mientras disparás un replay desde otra. Vas a ver los nuevos SMS aparecer animados con un slide-in en ≤2 segundos.
+### 🧪 `/admin/simulacion` — Simulación de escenarios
+
+> Antes se llamaba "Replay". Ahora reframeado con propósito claro:
+
+**Para qué sirve:**
+- 🎯 **Drill de emergencia**: tu equipo de Defensa Civil necesita practicar la respuesta. Disparás un escenario, verificás que reciben la alerta, que la lista de evacuación se imprime, y que el dashboard refleja la situación.
+- 🛡️ **Justificación presupuestal**: para mostrarle al concejo "si pasara lo de 2017 hoy, son 502 personas a evacuar; el sistema cuesta $200/mes". Cada simulación produce un reporte.
+- 🧪 **Validación técnica**: ¿el sistema detectaría el huaico de marzo 2017 con 24h de anticipación? Disparás y comparás severidad calculada vs daño real.
+
+**Qué eventos están disponibles:**
+| Evento | Fecha | Lluvia 24h | Contexto |
+|---|---|---|---|
+| `rimac-2017-03-15` | 15 mar 2017 | 95 mm | Huaico Carretera Central |
+| `piura-2017-03-27` | 27 mar 2017 | 220 mm | El Niño Costero, Piura |
+| `lima-2023-03-13` | 13 mar 2023 | 78 mm | Ciclón Yaku |
+
+**Qué hace cuando apretás "Simular escenario":**
+1. Inyecta la lluvia histórica en la cuenca
+2. Recalcula IVC con GEE
+3. Evalúa severidad (lluvia/p95 > 4× → EXTREMA)
+4. Persiste `alert_event`
+5. Encola SMS/WhatsApp para todos los suscriptores en el radio
+6. Aparece en `/alertas` y `/admin/outbox`
+
+**No envía nada real** hasta que conectes Twilio/Kapso/Teams (instrucciones en KAPSO_WHATSAPP.md y MS_AUTH.md).
 
 ---
 
 ## La nav bar
 
-| Botón | A dónde lleva | Qué ves |
+| Botón | A dónde lleva | Para qué |
 |---|---|---|
 | AHORA (logo) | `/` | Home |
-| **Inicio** | `/` | KPIs nacionales + tarjetas de cuencas |
-| **🗺️ Mapa Chosica** | `/cuenca/rimac` | Mapa interactivo con capas GEE |
-| **⏪ Replay** | `/replay` | 3 botones para disparar eventos históricos |
-| **🔔 Alertas** | `/alertas` | Historial de alertas con severidad |
-| **📱 Outbox** | `/admin/outbox` | Bandeja SMS simulados con polling en vivo |
+| **Inicio** | `/` | Panel de la municipalidad logueada |
+| **🗺️ Mapa** | `/cuenca/rimac` | Mapa interactivo con capas GEE |
+| **🔔 Alertas** | `/alertas` | Historial de alertas |
+| **📱 Outbox** | `/admin/outbox` | Bandeja SMS simulados con polling |
+| **🧪 Simulación** | `/admin/simulacion` | Disparar escenarios históricos (drill) |
+| **Badge derecha** | `/login` | Nombre de la municipalidad logueada o botón de login |
 
 ---
 
 ## Demo de 90 segundos (orden recomendado)
 
-1. **`/`** — "Esto es AHORA, sistema de alerta temprana de inundaciones para Perú. Vemos 3 cuencas piloto. Solo en Chosica tenemos 502 personas en riesgo alto."
+1. **`/login`** — "AHORA es multi-tenant. Cada municipalidad ingresa con su cuenta Microsoft institucional. Para la demo voy a entrar como **Lurigancho-Chosica**."
 
-2. **Click en tarjeta Rímac → `/cuenca/rimac`** — "Acá viene el corazón. 8 capas raster servidas en tiempo real por Google Earth Engine. La rampa amarillo→marrón muestra cuándo apareció construcción: el marrón oscuro son invasiones post-2000."
+2. **`/`** — "Este es mi panel. Veo solo la cuenca que monitorea Chosica: el Rímac. 502 habitantes en riesgo alto, IVC promedio 53.6."
 
-3. **Activar solo "🚨 Riesgo ALTO (nuevo)"** — "Estos polígonos rojos son urbanizaciones nuevas que pisaron cauces y quebradas. 34.8 hectáreas. 9.6% de toda la expansión urbana reciente. En Chosica."
+3. **Click en tarjeta Rímac → `/cuenca/rimac`** — "El corazón del producto. 5 capas raster del análisis combinado, servidas en tiempo real por Google Earth Engine. El IVC en semáforo verde→rojo es la headline; los polígonos rojos son invasiones post-1990 sobre cauces. **34.8 hectáreas, 9.6% de toda la expansión urbana reciente.**"
 
-4. **`/replay`** → click en `rimac-2017-03-15` — "Voy a simular el huaico del 15 de marzo 2017. El sistema debería detectar el evento extremo y notificar."
+4. **Abrir explainer del IVC** — "Para el alcalde no técnico: el índice combina 5 factores. Agua histórica 30%, pendiente 20%, cercanía a ríos 20%, construcción 15%, población 15%. Cualquier píxel sobre 60 es riesgo alto."
 
-5. **En otra tab `/admin/outbox`** — "Aquí están los 4 SMS que se enviarían a residentes y a Defensa Civil, con texto adaptado a teléfonos básicos. En producción esto va por Twilio. Si fuera 24 horas antes del huaico real, esas familias se evacúan."
+5. **`/admin/simulacion`** → click en `rimac-2017-03-15` — "Drill: simulamos el huaico de marzo 2017. ¿El sistema lo habría detectado? Disparo… listo."
 
-6. **Cerrar mostrando `/alertas`** — "Severidad EXTREMA, lluvia 5× sobre el percentil 95 local. Esto es AHORA en acción."
+6. **Tab `/admin/outbox`** — "Acá los 4 SMS que se enviarían a 3 residentes opt-in + Defensa Civil. **En producción, esto va por WhatsApp via Kapso** — el residente se suscribió compartiendo su ubicación, y solo recibe alertas de su zona declarada."
+
+7. **Cerrar con `/alertas`** — "Severidad EXTREMA, lluvia 5× sobre el percentil 95 local. Si esto hubiera estado activo el 14 de marzo 2017, esas familias se evacúan."
 
 ---
 
@@ -186,13 +195,12 @@ Mantenelo abierto en una tab mientras disparás un replay desde otra. Vas a ver 
 
 | Síntoma | Causa probable | Cómo lo arreglo |
 |---|---|---|
-| El mapa sale en blanco | CSS de MapLibre no cargó o WebGL desactivado | `pnpm dev` en `apps/web`, refrescá con Cmd+Shift+R. Revisá F12 → Console por errores `WebGL`. |
-| `/cuenca/rimac` tarda 15s en cargar | Primera llamada a GEE genera 8 mapIds | Normal. Subsiguientes son < 50ms (cache). |
-| No hay datos / 500 en `/cuencas` | Postgres no levantó o seeds no cargaron | `pnpm db:logs`. Si el seed falló, `pnpm db:reset` para reiniciar limpio. |
-| "modo mock" aparece en `/cuenca/rimac` | Falta credencial GEE en `.env` | Editá `apps/api/.env` → `GEE_SERVICE_ACCOUNT_JSON=./secrets/gee-sa.json`. Reinicia `pnpm api:dev`. |
-| Replay falla con "DataError" en `inject-rain` | Postgres no acepta el formato fecha | Reiniciá uvicorn (`Ctrl+C` y `pnpm api:dev`) — bug ya corregido. |
-| Los SMS no aparecen en `/admin/outbox` | El polling está pausado | Click en "Reanudar" en la esquina superior derecha. |
-| Pantalla en negro sin contenido | El servidor Next.js murió | Volvé a correr `pnpm dev` en `apps/web`. |
+| El mapa sale en blanco | CSS de MapLibre no cargó | `Cmd+Shift+R` para limpiar caché del browser. |
+| `/cuenca/rimac` tarda 15s en cargar | Primera llamada a GEE genera 5 mapIds | Normal. Subsiguientes son < 50ms (cache). |
+| No hay datos / 500 en `/cuencas` | Postgres no levantó o seeds no cargaron | `pnpm db:logs`. Si falló, `pnpm db:reset`. |
+| "modo mock" aparece | Falta credencial GEE en `.env` | Editá `apps/api/.env` → `GEE_SERVICE_ACCOUNT_JSON=./secrets/gee-sa.json`. |
+| Replay/simulación falla | Postgres no acepta el formato fecha | Ya corregido. Si pasa, reiniciá `pnpm api:dev`. |
+| Los SMS no aparecen en `/admin/outbox` | El polling está pausado | Click en "Reanudar" en la esquina sup. der. |
 
 ---
 
@@ -202,15 +210,13 @@ Mantenelo abierto en una tab mientras disparás un replay desde otra. Vas a ver 
 # DB
 pnpm db:psql                                # consola psql al container
 pnpm db:reset                                # destruye y vuelve a seedear
-docker compose exec db psql -U ahora -d ahora -c "SELECT * FROM alert_event;"
 
 # API
 curl http://localhost:8000/health           # ¿GEE conectado? ¿DB OK?
 curl http://localhost:8000/docs             # Swagger interactivo
-curl http://localhost:8000/layers/rimac     # genera los 8 mapIds (15s primera vez)
-curl -X DELETE http://localhost:8000/layers/rimac/cache  # invalidar cache
+curl http://localhost:8000/municipalities   # lista de municipalidades
 
-# Replay desde CLI (sin abrir la web)
+# Simular desde CLI (sin abrir la web)
 curl -X POST http://localhost:8000/replay \
   -H "content-type: application/json" \
   -d '{"event":"rimac-2017-03-15"}'
@@ -218,8 +224,8 @@ curl -X POST http://localhost:8000/replay \
 
 ---
 
-## ¿Y después?
+## Cuando estés listo para producción
 
-Cuando el local te funcione bien y quieras seguir, los siguientes pasos están en [PLAN.md → Pendientes](PLAN.md#pendientes-post-hackatón).
-
-Si querés saber el detalle de cómo funciona internamente cada cosa (de dónde sale cada número, cómo se calculó el IVC, qué pasa cuando apretás un botón), leé [ARCHITECTURE.md](ARCHITECTURE.md).
+1. **Microsoft Entra (sign-in real)**: ver [MS_AUTH.md](MS_AUTH.md)
+2. **WhatsApp via Kapso (alertas reales)**: ver [KAPSO_WHATSAPP.md](KAPSO_WHATSAPP.md)
+3. **Despliegue Azure + Vercel**: ver [PLAN.md → Pendientes](PLAN.md#pendientes-post-hackatón)

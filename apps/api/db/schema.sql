@@ -122,16 +122,38 @@ CREATE TABLE alert_event (
 
 CREATE INDEX idx_alert_event_cuenca_time ON alert_event (cuenca_id, created_at DESC);
 
--- Suscriptores de prueba (zonas geográficas)
-CREATE TABLE subscriber (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nombre      TEXT,
-  telefono    TEXT NOT NULL,
-  email       TEXT,
-  zona        GEOMETRY(Point, 4326),                   -- ubicación del residente
-  rol         TEXT NOT NULL DEFAULT 'residente',       -- "residente" | "autoridad"
-  activo      BOOLEAN NOT NULL DEFAULT true,
+-- Municipalidades (gobiernos locales que consumen el sistema)
+CREATE TABLE municipality (
+  id          TEXT PRIMARY KEY,                        -- "chosica", "lima-metro"
+  nombre      TEXT NOT NULL,
+  parent_id   TEXT REFERENCES municipality(id),        -- jerarquía territorial
+  nivel       TEXT NOT NULL DEFAULT 'distrital',       -- "regional" | "provincial" | "distrital"
+  logo_url    TEXT,
+  domain_hint TEXT,                                    -- ej: "munichosica.gob.pe" para auto-detect en MS auth
+  teams_webhook_url TEXT,                              -- canal de MS Teams para alertas
+  whatsapp_kapso_url TEXT,                             -- link público de opt-in WhatsApp (Kapso)
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE municipality_cuenca (
+  municipality_id TEXT NOT NULL REFERENCES municipality(id) ON DELETE CASCADE,
+  cuenca_id       TEXT NOT NULL REFERENCES cuenca(id) ON DELETE CASCADE,
+  PRIMARY KEY (municipality_id, cuenca_id)
+);
+
+-- Suscriptores de prueba (residentes que opt-in a recibir alertas)
+CREATE TABLE subscriber (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  municipality_id TEXT REFERENCES municipality(id),
+  nombre          TEXT,
+  telefono        TEXT NOT NULL,
+  email           TEXT,
+  zona            GEOMETRY(Point, 4326),               -- ubicación declarada
+  rol             TEXT NOT NULL DEFAULT 'residente',   -- "residente" | "autoridad"
+  canal           TEXT NOT NULL DEFAULT 'sms',         -- "sms" | "whatsapp" | "teams"
+  opt_in_at       TIMESTAMPTZ,
+  activo          BOOLEAN NOT NULL DEFAULT true,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Outbox de SMS simulados (idempotente por (event_id, telefono))

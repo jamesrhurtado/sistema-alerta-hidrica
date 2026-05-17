@@ -12,9 +12,8 @@ type Props = {
 };
 
 const GROUPS: { title: string; ids: string[] }[] = [
-  { title: "🌊 Agua", ids: ["agua_max", "agua_freq", "agua_recurrente"] },
-  { title: "🏙️ Urbano", ids: ["urbano_temporal", "urb_nuevo"] },
-  { title: "🚨 Riesgo", ids: ["riesgo_nuevo", "riesgo_antiguo", "ivc"] },
+  { title: "🚨 Riesgo (principal)", ids: ["ivc", "riesgo_nuevo", "riesgo_antiguo"] },
+  { title: "📊 Contexto (opcional)", ids: ["agua_freq", "urbano_temporal"] },
 ];
 
 export function LayerControl({ layers, visible, onToggle }: Props) {

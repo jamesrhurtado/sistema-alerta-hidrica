@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     api_port: int = 8000
     cors_origins: str = "http://localhost:3000"
 
+    # Kapso WhatsApp
+    kapso_api_key: str = ""
+    kapso_base_url: str = "https://api.kapso.ai/platform/v1"
+    kapso_phone_number_id: str = ""
+    kapso_template_id: str = ""
+    kapso_webhook_secret: str = ""
+
+    # Monitor automático
+    monitor_interval_minutes: int = 60
+
     # Logging
     log_level: str = "INFO"
 
