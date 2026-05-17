@@ -59,16 +59,6 @@ export type AlertEvent = {
   created_at: string;
 };
 
-export type OutboxItem = {
-  id: string;
-  telefono: string;
-  body: string;
-  status: string;
-  sent_at: string | null;
-  cuenca_id: string;
-  severity: string;
-};
-
 export type ReplayEvent = {
   id: string;
   cuenca_id: string;
@@ -273,7 +263,6 @@ export const api = {
     request<AlertEvent[]>(
       `/alerts${cuencaId ? `?cuenca_id=${cuencaId}` : ""}`,
     ),
-  outbox: () => request<OutboxItem[]>("/alerts/outbox"),
   replayEvents: () => request<ReplayEvent[]>("/replay/events"),
   triggerReplay: (event: string) =>
     request<{ status: string; run_id: string; context?: unknown; error?: string }>(

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertCircle, CheckCircle2, ExternalLink, Send, Settings } from "lucide-react";
 
@@ -271,12 +270,6 @@ export default async function ConfiguracionPage() {
         </p>
       </section>
 
-      <Link
-        href="/admin/outbox"
-        className="block text-xs text-white/40 text-center hover:text-white/60"
-      >
-        Tip: tambien puedes ver las alertas simuladas en /admin/outbox →
-      </Link>
     </div>
   );
 }

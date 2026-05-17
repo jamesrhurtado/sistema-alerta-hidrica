@@ -29,7 +29,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <NavLink href="/">Inicio</NavLink>
               <NavLink href="/cuenca/rimac">🗺️ Mapa</NavLink>
               <NavLink href="/alertas">🔔 Alertas</NavLink>
-              <NavLink href="/admin/outbox">📱 Outbox</NavLink>
               <NavLink href="/admin/analisis">🛰️ Análisis</NavLink>
               <NavLink href="/configuracion">⚙️</NavLink>
             </nav>

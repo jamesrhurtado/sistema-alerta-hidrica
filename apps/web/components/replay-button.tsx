@@ -18,7 +18,7 @@ export function ReplayButton({ event }: { event: ReplayEvent }) {
     try {
       const r = await api.triggerReplay(event.id);
       if (r.status === "success") {
-        setResult("✔ Pipeline completado. Generadas alertas + outbox.");
+        setResult("✔ Pipeline completado. Alertas enviadas al canal Telegram.");
         // refresh server data
         router.refresh();
       } else {
