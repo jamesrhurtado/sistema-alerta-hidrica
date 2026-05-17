@@ -1,0 +1,21 @@
+{
+  "name": "ahora",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AHORA — Sistema de Alerta Hídrica Oportuna con Respuesta Anticipada",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db",
+    "db:psql": "docker compose exec db psql -U ahora -d ahora",
+    "db:reset": "docker compose down -v && docker compose up -d db",
+    "api:dev": "cd apps/api && ./scripts/dev.sh",
+    "api:install": "cd apps/api && ./scripts/install.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.1.2"
+}

@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: ahora-db
+    environment:
+      POSTGRES_USER: ahora
+      POSTGRES_PASSWORD: ahora
+      POSTGRES_DB: ahora
+    ports:
+      - "5433:5432"
+    volumes:
+      - ahora-pgdata:/var/lib/postgresql/data
+      - ./apps/api/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./apps/api/db/seeds:/docker-entrypoint-initdb.d/seeds:ro
+      - ./apps/api/db/init.sh:/docker-entrypoint-initdb.d/02-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ahora -d ahora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ahora-pgdata:
