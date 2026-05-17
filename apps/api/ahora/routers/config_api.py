@@ -84,25 +84,19 @@ async def fire_test_alert(municipality_id: str) -> dict[str, Any]:
 @router.get("/system")
 async def get_system_config() -> dict[str, Any]:
     """Estado global del sistema (sin secretos)."""
+    from ahora.notify.telegram import telegram
+
     info: dict[str, Any] = {
+        "telegram_configured": telegram.enabled,
         "kapso_configured": kapso.enabled,
-        "kapso_phone_number_id": settings.kapso_phone_number_id or None,
-        "kapso_template_configured": bool(settings.kapso_template_id),
-        "kapso_can_send_real": kapso.can_send_real,
         "monitor_interval_minutes": settings.monitor_interval_minutes,
         "gee_mock_mode": settings.gee_mock_mode,
     }
-    if kapso.enabled:
-        try:
-            phones = await kapso.list_phone_numbers()
-            info["kapso_phone_numbers"] = [
-                {
-                    "id": p.get("phone_number_id") or p.get("id"),
-                    "name": p.get("display_name") or p.get("name"),
-                    "kind": p.get("kind"),
-                }
-                for p in (phones.get("data") or [])
-            ]
-        except Exception as exc:  # noqa: BLE001
-            info["kapso_phone_numbers_error"] = str(exc)
+    if telegram.enabled:
+        me = await telegram.get_me()
+        if me:
+            info["telegram_bot"] = {
+                "username": me.get("username"),
+                "name": me.get("first_name"),
+            }
     return info

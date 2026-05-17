@@ -167,9 +167,27 @@ export type Municipality = {
   domain_hint: string | null;
   whatsapp_kapso_url: string | null;
   teams_webhook_url: string | null;
+  telegram_chat_id?: string | null;
+  telegram_username?: string | null;
   n_cuencas?: number;
   cuencas?: Cuenca[];
   suscriptores_por_canal?: Record<string, number>;
+};
+
+export type TelegramStatus = {
+  configured: boolean;
+  reachable?: boolean;
+  bot_username?: string;
+  bot_name?: string;
+  bot_id?: number;
+};
+
+export type TelegramChat = {
+  chat_id: string;
+  type: string | null;
+  title: string | null;
+  username: string | null;
+  first_name: string | null;
 };
 
 export const api = {
@@ -183,13 +201,40 @@ export const api = {
   municipality: (id: string) => request<Municipality>(`/municipalities/${id}`),
   analysisEvents: () => request<AnalysisEventMeta[]>("/analysis/events"),
   analysis: (eventId: string) => request<AnalysisResult>(`/analysis/events/${eventId}`),
-  systemConfig: () => request<{ kapso_configured: boolean; monitor_interval_minutes: number; gee_mock_mode: boolean }>("/config/system"),
-  schedulerStatus: () => request<{ interval_minutes: number; enabled: boolean; ran_at: string | null; next_at: string | null; cuencas_scanned: number; alerts_triggered: number }>("/scheduler"),
-  updateMunicipalityConfig: (id: string, body: { whatsapp_kapso_url?: string | null; teams_webhook_url?: string | null }) =>
-    request<{ municipality_id: string; whatsapp_kapso_url: string | null; teams_webhook_url: string | null }>(`/config/municipality/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    }),
+  systemConfig: () =>
+    request<{
+      telegram_configured: boolean;
+      kapso_configured: boolean;
+      monitor_interval_minutes: number;
+      gee_mock_mode: boolean;
+      telegram_bot?: { username: string; name: string };
+    }>("/config/system"),
+  schedulerStatus: () =>
+    request<{
+      interval_minutes: number;
+      enabled: boolean;
+      ran_at: string | null;
+      next_at: string | null;
+      cuencas_scanned: number;
+      alerts_triggered: number;
+    }>("/scheduler"),
+  telegramStatus: () => request<TelegramStatus>("/telegram/status"),
+  telegramRecentChats: () => request<{ configured: boolean; chats: TelegramChat[] }>("/telegram/recent-chats"),
+  setTelegramChannel: (municipalityId: string, body: { telegram_chat_id?: string; telegram_username?: string }) =>
+    request<{ municipality_id: string; telegram_chat_id: string | null; telegram_username: string | null }>(
+      `/telegram/municipality/${municipalityId}`,
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
+  testTelegram: (municipalityId: string) =>
+    request<{ ok: boolean; chat_id: string; error?: string; message_id?: number }>(
+      `/telegram/municipality/${municipalityId}/test`,
+      { method: "POST" },
+    ),
+  fireTestAlert: (municipalityId: string) =>
+    request<{ status: string; error?: string; context?: unknown }>(
+      `/config/test-alert/${municipalityId}`,
+      { method: "POST" },
+    ),
   alerts: (cuencaId?: string) =>
     request<AlertEvent[]>(
       `/alerts${cuencaId ? `?cuenca_id=${cuencaId}` : ""}`,

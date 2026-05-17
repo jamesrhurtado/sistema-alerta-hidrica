@@ -46,7 +46,8 @@ async def get_municipality(municipality_id: str) -> dict[str, Any]:
         m = await s.execute(
             text(
                 "SELECT id, nombre, parent_id, nivel, domain_hint, "
-                "       whatsapp_kapso_url, teams_webhook_url "
+                "       whatsapp_kapso_url, teams_webhook_url, "
+                "       telegram_chat_id, telegram_username "
                 "FROM municipality WHERE id=:id"
             ),
             {"id": municipality_id},
@@ -96,6 +97,8 @@ async def get_municipality(municipality_id: str) -> dict[str, Any]:
         "domain_hint": mrow[4],
         "whatsapp_kapso_url": mrow[5],
         "teams_webhook_url": mrow[6],
+        "telegram_chat_id": mrow[7],
+        "telegram_username": mrow[8],
         "cuencas": cuencas,
         "suscriptores_por_canal": canales,
     }

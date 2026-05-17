@@ -294,27 +294,51 @@ async def _dispatch_notifications(
     cuenca_label: str,
     rain_mm: float | int,
 ) -> dict[str, Any]:
-    from ahora.notify.kapso import kapso
+    """Envia la alerta por todos los canales activos para esta cuenca:
+    - Telegram: a los canales de las municipalidades que monitorean la cuenca
+    - SMS simulado: a la tabla outbox para visualizar (1 fila por suscriptor SMS)
+    """
+    from ahora.notify.telegram import telegram
 
+    # 1. Canales Telegram de las municipalidades de esta cuenca
     async with get_session() as s:
-        res = await s.execute(
+        muni_res = await s.execute(
             text(
-                "SELECT s.id, s.telefono, s.nombre, s.canal "
-                "FROM subscriber s, cuenca c "
-                "WHERE c.id=:c "
-                "  AND s.municipality_id IN ("
-                "    SELECT municipality_id FROM municipality_cuenca WHERE cuenca_id = c.id"
-                "  ) "
-                "  AND s.activo = true"
+                "SELECT m.id, m.nombre, m.telegram_chat_id "
+                "FROM municipality m "
+                "JOIN municipality_cuenca mc ON mc.municipality_id = m.id "
+                "WHERE mc.cuenca_id = :c "
+                "  AND m.telegram_chat_id IS NOT NULL"
             ),
             {"c": cuenca_id},
         )
-        subs = res.fetchall()
+        munis_telegram = muni_res.fetchall()
 
-        sms_count = 0
-        wa_count = 0
-        wa_subs: list[dict[str, str]] = []
-        for sub_id, telefono, nombre, canal in subs:
+    telegram_results: list[dict[str, Any]] = []
+    if telegram.enabled:
+        for muni_id, muni_nombre, chat_id in munis_telegram:
+            tg_text = _format_telegram_alert(severity, cuenca_label, message, int(rain_mm))
+            res = await telegram.send(chat_id, tg_text)
+            print(f"\n📡 Telegram → {muni_nombre} ({chat_id}): {'OK' if res.get('ok') else res.get('error', 'fail')}")
+            telegram_results.append({"municipality_id": muni_id, "chat_id": chat_id, **res})
+
+    # 2. Suscriptores SMS individuales (modo simulado/legado)
+    async with get_session() as s:
+        sub_res = await s.execute(
+            text(
+                "SELECT s.id, s.telefono, s.nombre, s.canal "
+                "FROM subscriber s, cuenca c "
+                "WHERE c.id = :c "
+                "  AND s.municipality_id IN ("
+                "    SELECT municipality_id FROM municipality_cuenca WHERE cuenca_id = c.id"
+                "  ) "
+                "  AND s.activo = true "
+                "  AND s.canal = 'sms'"
+            ),
+            {"c": cuenca_id},
+        )
+        sms_subs = sub_res.fetchall()
+        for sub_id, telefono, nombre, _ in sms_subs:
             await s.execute(
                 text(
                     "INSERT INTO sms_outbox (event_id, subscriber_id, telefono, body, status) "
@@ -323,39 +347,26 @@ async def _dispatch_notifications(
                 ),
                 {"e": event_id, "s": sub_id, "t": telefono, "b": message},
             )
-            print("\n" + "─" * 60)
-            etiqueta = "WHATSAPP" if canal == "whatsapp" else "SMS"
-            print(f"📱 {etiqueta} → {nombre or telefono} ({telefono})")
-            print(message)
-            print("─" * 60)
-            if canal == "whatsapp":
-                wa_subs.append({"phone_number": telefono, "name": nombre or ""})
-                wa_count += 1
-            else:
-                sms_count += 1
+            print(f"\n📱 SMS simulado → {nombre or telefono}")
         await s.commit()
 
-    # Si Kapso esta configurado completo (con template), envio real a WhatsApp
-    kapso_result: dict[str, Any] = {"attempted": False}
-    if wa_subs and kapso.can_send_real:
-        kapso_result = await kapso.send_alert_to_subscribers(
-            recipients=wa_subs,
-            body_params=[
-                severity.upper(),
-                cuenca_label,
-                f"Lluvia 24h: {int(rain_mm)} mm. Sigue indicaciones de Defensa Civil.",
-                "Defensa Civil",
-            ],
-            broadcast_name=f"AHORA · {cuenca_label} · {severity}",
-        )
-        kapso_result["attempted"] = True
-
     return {
-        "notified": len(subs),
-        "sms_simulated": sms_count,
-        "whatsapp": wa_count,
-        "kapso": kapso_result,
+        "telegram_channels": len(telegram_results),
+        "telegram_results": telegram_results,
+        "sms_simulated": len(sms_subs),
     }
+
+
+def _format_telegram_alert(severity: str, cuenca: str, body: str, rain_mm: int) -> str:
+    """Formato Markdown para Telegram. Limpio y compacto."""
+    emoji = {"extreme": "🚨🚨", "high": "🚨", "medium": "⚠️", "low": "ℹ️"}.get(severity, "🚨")
+    return (
+        f"{emoji} *ALERTA {severity.upper()}* — {cuenca}\n"
+        f"\n"
+        f"{body}\n"
+        f"\n"
+        f"_Lluvia 24h: {rain_mm} mm · Sigue indicaciones de Defensa Civil._"
+    )
 
 
 # ─────────────────────────────────────────────────────────

@@ -32,7 +32,10 @@ class Settings(BaseSettings):
     api_port: int = 8000
     cors_origins: str = "http://localhost:3000"
 
-    # Kapso WhatsApp
+    # Telegram (canal principal de alertas)
+    telegram_bot_token: str = ""
+
+    # Kapso WhatsApp (opcional, legacy)
     kapso_api_key: str = ""
     kapso_base_url: str = "https://api.kapso.ai/platform/v1"
     kapso_phone_number_id: str = ""

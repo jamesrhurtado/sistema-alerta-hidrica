@@ -21,6 +21,7 @@ from ahora.routers import (
     layers,
     municipalities,
     replay,
+    telegram_helper,
     webhooks,
 )
 from ahora.scheduler import monitor_loop
@@ -65,6 +66,7 @@ app.include_router(replay.router)
 app.include_router(analysis.router)
 app.include_router(alerts.router)
 app.include_router(config_api.router)
+app.include_router(telegram_helper.router)
 app.include_router(webhooks.router)
 
 # Servir tiles/COGs generados desde storage local
