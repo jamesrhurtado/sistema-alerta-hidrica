@@ -1,0 +1,56 @@
+# Node
+node_modules/
+.pnpm-store/
+.next/
+.turbo/
+dist/
+build/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Credentials
+secrets/
+*.pem
+*-credentials.json
+gee-service-account.json
+
+# Data
+storage/
+data/raw/
+data/cache/
+*.tif
+*.tiff
+*.cog
+!docs/**/*.tif
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.docker-data/
