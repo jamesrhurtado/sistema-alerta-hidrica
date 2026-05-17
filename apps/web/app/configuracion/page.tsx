@@ -144,13 +144,14 @@ export default async function ConfiguracionPage() {
                 muni.id,
                 String(formData.get("telegram_chat_id") ?? ""),
                 String(formData.get("telegram_username") ?? ""),
+                String(formData.get("telegram_bot_token") ?? ""),
               );
             }}
             className="space-y-3"
           >
             <div className="space-y-1">
               <label className="block text-xs text-white/60">
-                Chat ID (puede ser tu user_id, group_id o el handle del canal)
+                Chat ID (tu user_id, group_id o el handle del canal)
               </label>
               <input
                 type="text"
@@ -162,7 +163,7 @@ export default async function ConfiguracionPage() {
             </div>
             <div className="space-y-1">
               <label className="block text-xs text-white/60">
-                Username del canal publico (opcional, para mostrar link a residentes)
+                Username del canal publico (opcional, genera el link t.me/...)
               </label>
               <input
                 type="text"
@@ -172,11 +173,42 @@ export default async function ConfiguracionPage() {
                 className="w-full rounded-md bg-black/40 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400/50"
               />
             </div>
+
+            <details className="rounded-md border border-white/10 bg-black/30 p-3 group">
+              <summary className="cursor-pointer text-xs font-semibold text-white/80 list-none flex items-center justify-between">
+                <span>🤖 Usar mi propio bot (avanzado)</span>
+                <span className="text-white/40 text-[10px] group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="mt-3 space-y-2">
+                <label className="block text-xs text-white/60">
+                  Token de tu bot personalizado (opcional)
+                </label>
+                <input
+                  type="password"
+                  name="telegram_bot_token"
+                  placeholder="123456789:AAH...abc (deja vacio para usar el bot del sistema)"
+                  className="w-full rounded-md bg-black/40 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400/50 font-mono"
+                />
+                <div className="text-[11px] text-white/50 space-y-1 leading-relaxed">
+                  <p><strong className="text-white/80">¿Para que sirve esto?</strong> Si tu municipalidad quiere un bot con su propia marca (ej. @munichosica_alertas_bot), pega aqui el token de BotFather.</p>
+                  <p className="text-white/40">Como crear tu bot:</p>
+                  <ol className="list-decimal pl-4 space-y-0.5 text-white/40">
+                    <li>Abre Telegram, busca <code className="bg-black/40 px-1 rounded text-emerald-300">@BotFather</code></li>
+                    <li>Envia <code className="bg-black/40 px-1 rounded">/newbot</code></li>
+                    <li>Elige nombre y username (debe terminar en <code className="bg-black/40 px-1 rounded">_bot</code>)</li>
+                    <li>Copia el token que te entrega y pegalo aqui</li>
+                    <li>Importante: agrega tu bot como administrador del canal donde quieres recibir las alertas</li>
+                  </ol>
+                  <p className="pt-1">Si dejas este campo vacio, las alertas saldran desde <code className="bg-black/40 px-1 rounded">@{tgStatus.bot_username}</code> (bot del sistema).</p>
+                </div>
+              </div>
+            </details>
+
             <button
               type="submit"
               className="rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2"
             >
-              Guardar canal
+              Guardar configuracion
             </button>
           </form>
 

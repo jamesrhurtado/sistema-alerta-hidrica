@@ -298,13 +298,13 @@ async def _dispatch_notifications(
     - Telegram: a los canales de las municipalidades que monitorean la cuenca
     - SMS simulado: a la tabla outbox para visualizar (1 fila por suscriptor SMS)
     """
-    from ahora.notify.telegram import telegram
+    from ahora.notify.telegram import bot_for
 
     # 1. Canales Telegram de las municipalidades de esta cuenca
     async with get_session() as s:
         muni_res = await s.execute(
             text(
-                "SELECT m.id, m.nombre, m.telegram_chat_id "
+                "SELECT m.id, m.nombre, m.telegram_chat_id, m.telegram_bot_token "
                 "FROM municipality m "
                 "JOIN municipality_cuenca mc ON mc.municipality_id = m.id "
                 "WHERE mc.cuenca_id = :c "
@@ -315,12 +315,15 @@ async def _dispatch_notifications(
         munis_telegram = muni_res.fetchall()
 
     telegram_results: list[dict[str, Any]] = []
-    if telegram.enabled:
-        for muni_id, muni_nombre, chat_id in munis_telegram:
-            tg_text = _format_telegram_alert(severity, cuenca_label, message, int(rain_mm))
-            res = await telegram.send(chat_id, tg_text)
-            print(f"\n📡 Telegram → {muni_nombre} ({chat_id}): {'OK' if res.get('ok') else res.get('error', 'fail')}")
-            telegram_results.append({"municipality_id": muni_id, "chat_id": chat_id, **res})
+    for muni_id, muni_nombre, chat_id, muni_token in munis_telegram:
+        bot = bot_for(muni_token)
+        if not bot.enabled:
+            telegram_results.append({"municipality_id": muni_id, "skipped": "no_token"})
+            continue
+        tg_text = _format_telegram_alert(severity, cuenca_label, message, int(rain_mm))
+        res = await bot.send(chat_id, tg_text)
+        print(f"\n📡 Telegram → {muni_nombre} ({chat_id}): {'OK' if res.get('ok') else res.get('error', 'fail')}")
+        telegram_results.append({"municipality_id": muni_id, "chat_id": chat_id, **res})
 
     # 2. Suscriptores SMS individuales (modo simulado/legado)
     async with get_session() as s:

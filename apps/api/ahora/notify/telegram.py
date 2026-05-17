@@ -85,3 +85,14 @@ class TelegramBot:
 
 
 telegram = TelegramBot()
+
+
+def bot_for(muni_token: str | None) -> TelegramBot:
+    """Devuelve el bot a usar para una municipalidad.
+
+    Si la muni tiene su propio token configurado, usa ese; sino el del sistema.
+    """
+    if muni_token:
+        return TelegramBot(token=muni_token)
+    return telegram
+

@@ -182,6 +182,36 @@ export type TelegramStatus = {
   bot_id?: number;
 };
 
+export type ForecastResult = {
+  cuenca_id: string;
+  cuenca_nombre: string;
+  cuenca_foco: string | null;
+  p95_threshold_mm: number;
+  forecast_48h: {
+    mm_24h_mean: number;
+    mm_24h_max: number;
+    horizon_hours: number;
+  };
+  severity_predicted: "low" | "medium" | "high" | "extreme";
+  trigger_active: boolean;
+  ratio_over_threshold: number;
+  chirps_recent_days: { fecha: string; mm_24h_mean: number; mm_24h_max: number }[];
+  as_of: string;
+};
+
+export type AnalyzeResult = {
+  ok: boolean;
+  run_id: string;
+  trigger_active: boolean;
+  forecast_mm_24h_max: number | null;
+  p95_threshold: number | null;
+  alert_created: boolean;
+  severity: string | null;
+  telegram_channels_notified: number;
+  telegram_results: { ok: boolean; municipality_id?: string; chat_id?: string; error?: string }[];
+  error?: string;
+};
+
 export type TelegramChat = {
   chat_id: string;
   type: string | null;
@@ -220,11 +250,15 @@ export const api = {
     }>("/scheduler"),
   telegramStatus: () => request<TelegramStatus>("/telegram/status"),
   telegramRecentChats: () => request<{ configured: boolean; chats: TelegramChat[] }>("/telegram/recent-chats"),
-  setTelegramChannel: (municipalityId: string, body: { telegram_chat_id?: string; telegram_username?: string }) =>
-    request<{ municipality_id: string; telegram_chat_id: string | null; telegram_username: string | null }>(
+  setTelegramChannel: (municipalityId: string, body: { telegram_chat_id?: string; telegram_username?: string; telegram_bot_token?: string }) =>
+    request<{ municipality_id: string; telegram_chat_id: string | null; telegram_username: string | null; telegram_has_custom_token: boolean }>(
       `/telegram/municipality/${municipalityId}`,
       { method: "PATCH", body: JSON.stringify(body) },
     ),
+  forecast: (cuencaId: string) =>
+    request<ForecastResult>(`/forecast/${cuencaId}`),
+  analyzeNow: (cuencaId: string) =>
+    request<AnalyzeResult>(`/forecast/${cuencaId}/analyze-now`, { method: "POST" }),
   testTelegram: (municipalityId: string) =>
     request<{ ok: boolean; chat_id: string; error?: string; message_id?: number }>(
       `/telegram/municipality/${municipalityId}/test`,

@@ -4,6 +4,7 @@ import { Activity, AlertTriangle, MapPin, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { RiskMap } from "@/components/risk-map";
 import { CuencaStats } from "@/components/cuenca-stats";
+import { ForecastCard } from "@/components/forecast-card";
 import { IvcExplainer } from "@/components/ivc-explainer";
 import { SeverityBadge } from "@/components/severity-badge";
 import { fmtNum } from "@/lib/utils";
@@ -82,6 +83,8 @@ export default async function CuencaPage({ params }: { params: Promise<Params> }
         </div>
 
         <aside className="space-y-4">
+          <ForecastCard cuencaId={slug} />
+
           <CuencaStats stack={stack} />
 
           <IvcExplainer />

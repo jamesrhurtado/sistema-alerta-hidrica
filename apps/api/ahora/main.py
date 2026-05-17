@@ -16,6 +16,7 @@ from ahora.routers import (
     analysis,
     config_api,
     cuencas,
+    forecast,
     health,
     ivc,
     layers,
@@ -64,6 +65,7 @@ app.include_router(ivc.router)
 app.include_router(layers.router)
 app.include_router(replay.router)
 app.include_router(analysis.router)
+app.include_router(forecast.router)
 app.include_router(alerts.router)
 app.include_router(config_api.router)
 app.include_router(telegram_helper.router)

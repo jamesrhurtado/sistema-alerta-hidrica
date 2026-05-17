@@ -69,21 +69,53 @@ def get_gfs_forecast(cuenca_id: str, geom_aoi: Any, hours: int = 48) -> dict[str
         return {"horizon_hours": hours, **mock}
 
     import ee  # type: ignore
+
+    # GFS0P25: forecast_hours=0 no tiene precip acumulada (estado inicial).
+    # Solo horas > 0 traen total_precipitation_surface. Tomamos las ultimas
+    # corridas (corren cada 6h: 00, 06, 12, 18 UTC) y filtramos a horizonte.
     coll = (
         ee.ImageCollection("NOAA/GFS0P25")
+        .filterDate(
+            ee.Date(ee.Date(int(__import__("time").time() * 1000)).advance(-12, "hour")),
+            ee.Date(int(__import__("time").time() * 1000)).advance(hours, "hour"),
+        )
+        .filter(ee.Filter.gt("forecast_hours", 0))
         .filter(ee.Filter.lte("forecast_hours", hours))
         .select("total_precipitation_surface")
     )
-    total = coll.sum().reduceRegion(
-        reducer=ee.Reducer.mean().combine(ee.Reducer.max(), sharedInputs=True),
-        geometry=_to_ee_geom(geom_aoi),
-        scale=10000,
-        bestEffort=True,
-    ).getInfo()
+    try:
+        total = coll.sum().reduceRegion(
+            reducer=ee.Reducer.mean().combine(ee.Reducer.max(), sharedInputs=True),
+            geometry=_to_ee_geom(geom_aoi),
+            scale=10000,
+            bestEffort=True,
+        ).getInfo()
+        mean_v = total.get("total_precipitation_surface_mean") or 0
+        max_v = total.get("total_precipitation_surface_max") or 0
+    except Exception as exc:  # noqa: BLE001
+        # GFS data acumulada puede no estar siempre disponible. Caemos a CHIRPS
+        # del ultimo dia como aproximacion.
+        from ahora.logging_setup import log as _log
+        _log.warning("gfs.fallback_chirps", error=str(exc))
+        chirps = ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY") \
+            .filterDate(ee.Date(int(__import__("time").time() * 1000)).advance(-2, "day"),
+                        ee.Date(int(__import__("time").time() * 1000)))
+        try:
+            r = chirps.sum().reduceRegion(
+                reducer=ee.Reducer.mean().combine(ee.Reducer.max(), sharedInputs=True),
+                geometry=_to_ee_geom(geom_aoi),
+                scale=5000,
+                bestEffort=True,
+            ).getInfo()
+            mean_v = r.get("precipitation_mean") or 0
+            max_v = r.get("precipitation_max") or 0
+        except Exception:  # noqa: BLE001
+            mean_v = 0
+            max_v = 0
     return {
         "horizon_hours": hours,
-        "mm_24h_mean": total.get("total_precipitation_surface_mean"),
-        "mm_24h_max": total.get("total_precipitation_surface_max"),
+        "mm_24h_mean": mean_v,
+        "mm_24h_max": max_v,
     }
 
 
