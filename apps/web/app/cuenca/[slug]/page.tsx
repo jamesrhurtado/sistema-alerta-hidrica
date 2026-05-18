@@ -8,6 +8,7 @@ import { ForecastCard } from "@/components/forecast-card";
 import { IvcExplainer } from "@/components/ivc-explainer";
 import { SeverityBadge } from "@/components/severity-badge";
 import { fmtNum } from "@/lib/utils";
+import { getCurrentMunicipality } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,11 @@ export default async function CuencaPage({ params }: { params: Promise<Params> }
     notFound();
   }
 
-  const [stack, alerts, cases] = await Promise.all([
+  const [stack, alerts, cases, muni] = await Promise.all([
     api.layers(slug),
     api.alerts(slug),
     api.caseStudies(slug),
+    getCurrentMunicipality(),
   ]);
 
   const aoiGeom = cuenca.aoi_geojson ? JSON.parse(cuenca.aoi_geojson) : null;
@@ -83,7 +85,7 @@ export default async function CuencaPage({ params }: { params: Promise<Params> }
         </div>
 
         <aside className="space-y-4">
-          <ForecastCard cuencaId={slug} />
+          <ForecastCard cuencaId={slug} municipalityId={muni?.id} />
 
           <CuencaStats stack={stack} />
 
