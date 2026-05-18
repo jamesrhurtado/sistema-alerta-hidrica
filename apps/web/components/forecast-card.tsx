@@ -99,12 +99,12 @@ export function ForecastCard({ cuencaId, municipalityId }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-md bg-black/30 p-2">
-          <div className="text-white/40">Umbral local (p95)</div>
+        <div className="rounded-md bg-black/30 p-2" title="El valor de lluvia que solo se ha superado en el 5% de los días peores en los últimos 40 años. Sobre este umbral, la lluvia se considera anormal para esta cuenca.">
+          <div className="text-white/40">Lluvia extrema histórica</div>
           <div className="text-white font-semibold tabular-nums">{fmtNum(data.p95_threshold_mm, 1)} mm</div>
         </div>
-        <div className="rounded-md bg-black/30 p-2">
-          <div className="text-white/40">Ratio sobre umbral</div>
+        <div className="rounded-md bg-black/30 p-2" title="Cuántas veces más fuerte sería la lluvia pronosticada vs el umbral histórico. >1.0 ya es preocupante; >4 es extremo.">
+          <div className="text-white/40">Veces sobre lo normal</div>
           <div className={cn("font-semibold tabular-nums", ratio >= 2 ? "text-red-400" : ratio >= 1 ? "text-amber-300" : "text-emerald-400")}>
             {ratio.toFixed(2)}x
           </div>

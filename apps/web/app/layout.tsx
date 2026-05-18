@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </Link>
             <nav className="flex gap-1 text-sm flex-1 justify-center">
-              <NavLink href="/">Inicio</NavLink>
+              <NavLink href="/dashboard">Inicio</NavLink>
               <NavLink href="/cuenca/rimac">🗺️ Mapa</NavLink>
               <NavLink href="/alertas">🔔 Alertas</NavLink>
               <NavLink href="/admin/analisis">🛰️ Análisis</NavLink>

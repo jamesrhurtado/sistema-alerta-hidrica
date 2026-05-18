@@ -2,13 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSION_COOKIE } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/_next", "/favicon"];
+// "/" es la landing publica. /login es para autenticarse.
+const PUBLIC_EXACT = new Set(["/", "/login"]);
+const PUBLIC_PREFIXES = ["/_next", "/favicon"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rutas siempre publicas
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  // Rutas publicas
+  if (PUBLIC_EXACT.has(pathname)) return NextResponse.next();
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p + "/") || pathname === p)) {
     return NextResponse.next();
   }
 

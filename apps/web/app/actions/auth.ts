@@ -13,11 +13,11 @@ export async function loginAs(municipalityId: string) {
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 1 semana
   });
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {
   const c = await cookies();
   c.delete(SESSION_COOKIE);
-  redirect("/login");
+  redirect("/");
 }
