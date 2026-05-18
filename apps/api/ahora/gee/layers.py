@@ -20,9 +20,11 @@ from ahora.models import IvcParams
 GHSL_YEARS = [1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020, 2025, 2030]
 
 PALETTES = {
-    "agua_freq":       ["#f7fbff", "#deebf7", "#9ecae1", "#4292c6", "#08519c", "#08306b"],
+    # Empieza en cyan vibrante para que se distinga del satelite (no en blanco).
+    "agua_freq":       ["#7ec8ff", "#4292c6", "#2171b5", "#08519c", "#08306b", "#000051"],
     "agua_max":        ["#c6dbef", "#9ecae1"],
     "agua_recurrente": ["#08306b"],
+    "rios":            ["#00e5ff"],  # red hidrografica HydroSHEDS
     "urbano_temporal": ["#fff7bc", "#fee391", "#fec44f", "#fe9929", "#ec7014",
                         "#cc4c02", "#993404", "#662506"],
     "urb_nuevo":       ["#cc4c02"],
@@ -228,12 +230,19 @@ def build_layer_stack(
         ),
     }
 
-    # ── Generar tile URLs (5 capas optimizadas para usuario final) ──
+    # ── Red hidrografica HydroSHEDS (rios + quebradas, incluso secas) ──
+    # JRC solo ve agua superficial detectable por satelite. HydroSHEDS tiene
+    # los cauces oficiales — incluyendo quebradas que solo cargan agua en huaicos.
+    rivers_fc = ee.FeatureCollection("WWF/HydroSHEDS/v1/FreeFlowingRivers").filterBounds(aoi)
+    rivers_img = rivers_fc.style(color="00e5ff", width=2)
+
+    # ── Generar tile URLs ──
     layers = _images_to_tile_layers(
         {
             "ivc": ivc.updateMask(ivc.gt(15)),
             "riesgo_nuevo": riesgoNuevo.selfMask(),
             "riesgo_antiguo": riesgoAntiguo.selfMask(),
+            "rios": rivers_img,
             "agua_freq": aguaFreq,
             "urbano_temporal": urbanoTemporal,
         },
@@ -288,8 +297,15 @@ def _images_to_tile_layers(
             "opacity": 0.65,
             "default_visible": True,
         },
+        "rios": {
+            "label": "🏞️ Cauces y quebradas (HydroSHEDS)",
+            "palette": PALETTES["rios"],
+            "opacity": 0.85,
+            "default_visible": True,
+            "already_styled": True,  # FeatureCollection.style() ya devuelve RGB
+        },
         "agua_freq": {
-            "label": "🌊 Historial de agua (1984–2021)",
+            "label": "🌊 Agua superficial detectada (JRC 1984–2021)",
             "min": 1,
             "max": max(2, int(total_years * 0.6)),
             "palette": PALETTES["agua_freq"],
@@ -311,12 +327,17 @@ def _images_to_tile_layers(
         cfg = viz.get(key)
         if not cfg:
             continue
-        vis_params: dict[str, Any] = {"palette": cfg["palette"]}
-        if "min" in cfg:
-            vis_params["min"] = cfg["min"]
-        if "max" in cfg:
-            vis_params["max"] = cfg["max"]
-        mapid = image.getMapId(vis_params)
+        if cfg.get("already_styled"):
+            # Imagen ya estilizada (ej. FeatureCollection.style() devuelve RGB);
+            # GEE no acepta palette/min/max sobre eso.
+            mapid = image.getMapId({})
+        else:
+            vis_params: dict[str, Any] = {"palette": cfg["palette"]}
+            if "min" in cfg:
+                vis_params["min"] = cfg["min"]
+            if "max" in cfg:
+                vis_params["max"] = cfg["max"]
+            mapid = image.getMapId(vis_params)
         out[key] = {
             "id": key,
             "label": cfg["label"],

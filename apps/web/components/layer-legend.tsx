@@ -66,6 +66,7 @@ export function LayerLegend({ layers, visible, totalYears, yearUrbStart, yearUrb
   const swatches: { color: string; label: string; border?: string }[] = [];
   if (visible["riesgo_nuevo"]) swatches.push({ color: "#ff0066", label: "🚨 Riesgo ALTO", border: "#660033" });
   if (visible["riesgo_antiguo"]) swatches.push({ color: "#fdae6b", label: "⚠️ Riesgo medio", border: "#cc4c02" });
+  if (visible["rios"]) swatches.push({ color: "#00e5ff", label: "🏞️ Cauces y quebradas" });
 
   return (
     <div className="rounded-lg border border-white/10 bg-black/70 backdrop-blur px-3 py-2.5 space-y-2 w-[260px]">

@@ -53,6 +53,7 @@ const LAYER_ORDER = [
   "agua_freq",
   "urbano_temporal",
   "ivc",
+  "rios",            // rios encima del crecimiento urbano para ver invasiones
   "riesgo_antiguo",
   "riesgo_nuevo",
 ];
