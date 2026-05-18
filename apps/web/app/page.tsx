@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CloudRain, MapPin, ShieldAlert, Users } from "lucide-react";
+import { ArrowRight, CloudRain, Droplet, MapPin, ShieldAlert, Users } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { EarthGlobe } from "@/components/earth-globe";
 import { KPICard } from "@/components/kpi-card";
 import { SeverityBadge } from "@/components/severity-badge";
 import { fmtNum } from "@/lib/utils";
@@ -24,51 +26,64 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <section>
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              Sistema de Alerta Hídrica Oportuna
+      <section className="hero-futuristic">
+        <div className="flex items-start justify-between flex-wrap gap-6 relative">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.05]">
+              Sistema de Alerta
+              <br />
+              <span className="bg-gradient-to-r from-sky-300 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                Hídrica Oportuna
+              </span>
             </h1>
-            <p className="text-white/60 mt-1 max-w-2xl">
-              AHORA monitorea cuencas piloto en Perú, combinando geointeligencia satelital
-              con pronósticos meteorológicos para anticipar inundaciones y huaicos.
+            <p className="text-white/70 mt-5 max-w-2xl text-base md:text-lg leading-relaxed">
+              AHORA vigila los ríos del Perú desde satélites y, junto al pronóstico del clima,
+              avisa con días de anticipación cuándo una zona puede inundarse o sufrir un huaico.
             </p>
+            <Link
+              href="/replay"
+              className="mt-7 inline-flex items-center gap-2 rounded-md bg-[var(--color-ahora-blue)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0a3d8f] border border-white/10 shadow-lg shadow-blue-900/40 transition-all hover:-translate-y-0.5"
+            >
+              Disparar replay histórico
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <Link
-            href="/replay"
-            className="inline-flex items-center gap-2 rounded-md bg-[var(--color-ahora-blue)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0a3d8f] border border-white/10"
-          >
-            Disparar replay histórico
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+
+          {/* Globo terrestre 3D · Three.js · apunta a LATAM */}
+          <div className="hidden lg:block shrink-0 -mt-8 -mr-4">
+            <EarthGlobe size={440} />
+          </div>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="kpi-grid grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard
           label="Cuencas monitoreadas"
           value={cuencas.length}
           hint="piloto activo"
           accent="blue"
+          icon={<Droplet className="w-7 h-7 text-sky-300 fill-sky-400/40" />}
         />
         <KPICard
           label="Alertas últimas 24h"
           value={activeAlerts.length}
           hint={`${alerts.length} históricas`}
           accent="red"
+          icon={<Image src="/icons/siren.png" alt="" width={40} height={40} className="object-contain" />}
         />
         <KPICard
           label="Población en riesgo alto"
           value={fmtNum(popAtRisk)}
           hint="IVC > 60, agregado"
           accent="orange"
+          icon={<Image src="/icons/shield.png" alt="" width={40} height={40} className="object-contain" />}
         />
         <KPICard
           label="IVC promedio nacional"
           value={fmtNum(ivcAvg, 1)}
           hint="0–100"
           accent="purple"
+          icon={<Image src="/icons/chart.png" alt="" width={40} height={40} className="object-contain" />}
         />
       </section>
 

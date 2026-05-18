@@ -1,11 +1,25 @@
 @import "tailwindcss";
 
 @theme {
+  /* AHORA tokens originales — KPIs y componentes existentes */
   --color-ahora-blue: #08306b;
   --color-ahora-red: #b30000;
   --color-ahora-orange: #cc4c02;
   --color-ahora-purple: #6a51a3;
   --color-ahora-amber: #fec44f;
+
+  /* Paleta brand AHORA · extraída del logo */
+  --color-brand-deep:  #1E3A8B;  /* navy AHORA */
+  --color-brand:       #2563EB;  /* blue principal */
+  --color-brand-light: #60A5FA;  /* light blue ola */
+  --color-brand-cyan:  #38BDF8;  /* highlight cyan */
+  --color-anticipada:  #16A34A;  /* verde de la A de Anticipada — solo cuando el sistema anticipa con éxito */
+
+  /* Severidad semántica */
+  --color-sev-medium:  #F59E0B;
+  --color-sev-high:    #F97316;
+  --color-sev-extreme: #DC2626;
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -28,3 +42,79 @@ html, body {
   100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
 .pulse-ring { animation: pulse-ring 1.5s infinite; }
+
+/* ─── KPI bounce-in al cargar la página · una sola vez ─── */
+@keyframes kpi-pop-in {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.92); }
+  55%  { opacity: 1; transform: translateY(-10px) scale(1.03); }
+  75%  { transform: translateY(5px) scale(0.99); }
+  100% { transform: translateY(0) scale(1); }
+}
+.kpi-grid > * {
+  animation: kpi-pop-in 800ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.kpi-grid > *:nth-child(1) { animation-delay: 120ms; }
+.kpi-grid > *:nth-child(2) { animation-delay: 220ms; }
+.kpi-grid > *:nth-child(3) { animation-delay: 320ms; }
+.kpi-grid > *:nth-child(4) { animation-delay: 420ms; }
+
+/* ─── Hero futurista · mesh gradient + grid + scan ─── */
+.hero-futuristic {
+  position: relative;
+  isolation: isolate;
+  padding: 1.5rem 1rem 2rem 1rem;
+  margin: -1.5rem -1rem 0 -1rem;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.hero-futuristic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(60% 50% at 18% 25%, rgba(56, 189, 248, 0.16), transparent 70%),
+    radial-gradient(55% 45% at 82% 70%, rgba(99, 102, 241, 0.12), transparent 70%),
+    radial-gradient(40% 40% at 50% 100%, rgba(34, 211, 238, 0.10), transparent 70%);
+}
+.hero-futuristic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 0%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 0%, transparent 95%);
+  pointer-events: none;
+}
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-orbit-spin { animation: orbit-spin 20s linear infinite; }
+
+@keyframes orbit-spin-reverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+.animate-orbit-spin-reverse { animation: orbit-spin-reverse 30s linear infinite; }
+
+/* ─── Markers cyan pulsantes para el globo terrestre ─── */
+@keyframes marker-pulse-cyan {
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+.marker-pulse-cyan::before,
+.marker-pulse-cyan::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #22D3EE;
+  animation: marker-pulse-cyan 2.4s ease-out infinite;
+}
+.marker-pulse-cyan::after { animation-delay: 1.2s; }
