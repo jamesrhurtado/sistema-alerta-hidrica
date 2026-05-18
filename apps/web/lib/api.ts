@@ -219,6 +219,18 @@ export const api = {
   layers: (cuencaId: string) => request<LayerStack>(`/layers/${cuencaId}`),
   municipalities: () => request<Municipality[]>("/municipalities"),
   municipality: (id: string) => request<Municipality>(`/municipalities/${id}`),
+  updateMunicipalityConfig: (
+    municipalityId: string,
+    body: { whatsapp_kapso_url?: string | null; teams_webhook_url?: string | null },
+  ) =>
+    request<{
+      municipality_id: string;
+      whatsapp_kapso_url: string | null;
+      teams_webhook_url: string | null;
+    }>(`/config/municipality/${municipalityId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   analysisEvents: () => request<AnalysisEventMeta[]>("/analysis/events"),
   analysis: (eventId: string) => request<AnalysisResult>(`/analysis/events/${eventId}`),
   systemConfig: () =>

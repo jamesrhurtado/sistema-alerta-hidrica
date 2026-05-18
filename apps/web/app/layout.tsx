@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
-      href={href}
+      href={{ pathname: href }}
       className="px-3 py-1.5 rounded hover:bg-white/5 text-white/70 hover:text-white transition-colors"
     >
       {children}

@@ -162,7 +162,7 @@ export default async function HomePage() {
           <div className="rounded-lg border border-white/10 bg-white/[0.02] p-8 text-center text-white/50">
             <CloudRain className="w-10 h-10 mx-auto mb-3 opacity-50" />
             No hay alertas registradas todavía.{" "}
-            <Link href="/admin/simulacion" className="text-blue-400 underline">
+            <Link href={{ pathname: "/admin/simulacion" }} className="text-blue-400 underline">
               Simulá un escenario
             </Link>{" "}
             para ver cómo respondería el sistema.

@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  experimental: {
-    typedRoutes: true,
-  },
+  typedRoutes: true,
   async rewrites() {
     const apiUrl = process.env.API_URL ?? "http://localhost:8000";
     return [
