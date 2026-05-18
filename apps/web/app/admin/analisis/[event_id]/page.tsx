@@ -76,7 +76,7 @@ export default async function AnalisisDetalle({
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           <h2 className="text-sm uppercase tracking-wider text-white/50 font-semibold">
-            Radar Sentinel-1 — antes y después del evento
+            Inundación detectada por radar Sentinel-1
           </h2>
           <AnalysisMap analysis={a} />
           <div className="text-xs text-white/40">

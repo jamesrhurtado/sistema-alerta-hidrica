@@ -82,16 +82,29 @@ def analyze_historical_event(event_id: str, cuenca_aoi: tuple[float, float, floa
     pre_start, pre_end = cfg["pre_dates"]
     post_start, post_end = cfg["post_dates"]
 
+    # Sin filtrar por orbit_pass: para 2016-2017 en Peru la cobertura SAR
+    # descendente era irregular. Mezclar ASC/DESC mantiene mas imagenes.
     s1 = (
         ee.ImageCollection("COPERNICUS/S1_GRD")
         .filter(ee.Filter.eq("instrumentMode", "IW"))
         .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
-        .filter(ee.Filter.eq("orbitProperties_pass", "DESCENDING"))
         .filterBounds(aoi)
         .select("VH")
     )
-    pre_img = s1.filterDate(pre_start, pre_end).median().clip(aoi)
-    post_img = s1.filterDate(post_start, post_end).median().clip(aoi)
+    pre_coll = s1.filterDate(pre_start, pre_end)
+    post_coll = s1.filterDate(post_start, post_end)
+
+    pre_count = int(pre_coll.size().getInfo() or 0)
+    post_count = int(post_coll.size().getInfo() or 0)
+    if pre_count == 0 or post_count == 0:
+        raise RuntimeError(
+            f"Sentinel-1 sin imagenes para {event_id}: "
+            f"pre={pre_count} ({pre_start}..{pre_end}), "
+            f"post={post_count} ({post_start}..{post_end})"
+        )
+
+    pre_img = pre_coll.median().clip(aoi)
+    post_img = post_coll.median().clip(aoi)
     diff = pre_img.subtract(post_img)
     inundacion = post_img.lt(-17).And(diff.gt(3))
 

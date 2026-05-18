@@ -22,13 +22,15 @@ export default async function HomePage() {
   }
 
   const alerts = await api.alerts();
-  const ivcs = await Promise.all(cuencas.map((c) => api.ivc(c.id).catch(() => null)));
+  // Usamos /layers en vez de /ivc para consistencia con la pagina de cuenca.
+  // "Pob. en riesgo alto" = personas en polígono de invasiones nuevas sobre cauce.
+  const stacks = await Promise.all(cuencas.map((c) => api.layers(c.id).catch(() => null)));
 
-  const popAtRisk = ivcs.reduce((acc, i) => acc + (i?.pop_high_risk ?? 0), 0);
-  const validIvcs = ivcs.filter(Boolean);
+  const popAtRisk = stacks.reduce((acc, s) => acc + (s?.stats.pop_high_risk ?? 0), 0);
+  const validStacks = stacks.filter(Boolean);
   const ivcAvg =
-    validIvcs.length > 0
-      ? validIvcs.reduce((acc, i) => acc + (i?.ivc_mean ?? 0), 0) / validIvcs.length
+    validStacks.length > 0
+      ? validStacks.reduce((acc, s) => acc + (s?.stats.ivc_mean ?? 0), 0) / validStacks.length
       : 0;
   const activeAlerts = alerts.filter(
     (a) => Date.now() - new Date(a.created_at).getTime() < 24 * 3600 * 1000,
@@ -86,13 +88,13 @@ export default async function HomePage() {
         <KPICard
           label="Población en riesgo alto"
           value={fmtNum(popAtRisk)}
-          hint="IVC > 60, agregado"
+          hint="invasiones sobre cauce"
           accent="orange"
         />
         <KPICard
           label="IVC promedio"
           value={fmtNum(ivcAvg, 1)}
-          hint="0–100 escala global"
+          hint="vulnerabilidad combinada"
           accent="purple"
         />
       </section>
@@ -122,11 +124,11 @@ export default async function HomePage() {
                       <div className="text-sm text-white/60">Foco: {c.foco}</div>
                     )}
                   </div>
-                  {ivcs[i] && (
+                  {stacks[i] && (
                     <div className="text-right">
                       <div className="text-xs text-white/40">IVC máx</div>
                       <div className="text-2xl font-bold text-amber-300 tabular-nums">
-                        {fmtNum(ivcs[i]?.ivc_max, 1)}
+                        {fmtNum(stacks[i]?.stats.ivc_max, 1)}
                       </div>
                     </div>
                   )}
@@ -134,9 +136,9 @@ export default async function HomePage() {
                 <div className="mt-3 flex items-center justify-between text-xs text-white/50">
                   <span className="flex items-center gap-1">
                     <Users className="w-3 h-3" />
-                    {fmtNum(ivcs[i]?.pop_high_risk)} en riesgo
+                    {fmtNum(stacks[i]?.stats.pop_high_risk)} en riesgo
                   </span>
-                  {ivcs[i]?.mock && (
+                  {stacks[i]?.mock && (
                     <span className="text-amber-400/70 font-mono">mock-data</span>
                   )}
                 </div>
